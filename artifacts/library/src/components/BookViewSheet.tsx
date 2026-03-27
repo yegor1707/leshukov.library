@@ -110,7 +110,7 @@ export function BookViewSheet({ book, isOpen, onClose, onEdit, isAdmin }: BookVi
               <thead><tr><th style={{ width: '36px', textAlign: 'center' }}>№</th><th>Слово</th><th>Объяснение</th></tr></thead>
               <tbody>
                 {book.vocab.map((v, i) => (
-                  <tr key={i}><td style={{ textAlign: 'center', opacity: 0.5 }}>{i + 1}</td><td>{v.word}</td><td>{v.meaning}</td></tr>
+                  <tr key={i}><td style={{ textAlign: 'center', opacity: 0.5 }}>{i + 1}</td><td>{v.word}</td><td style={{ whiteSpace: 'pre-line' }}>{v.meaning}</td></tr>
                 ))}
               </tbody>
             </table>

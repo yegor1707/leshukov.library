@@ -5,6 +5,34 @@ import { useBookMutations, useThoughts, useThoughtMutations } from "@/hooks/use-
 import { useAdmin } from "@/hooks/use-admin";
 import { showToast } from "@/components/Toast";
 import { BookFormSheet } from "@/components/BookFormSheet";
+import {
+  DndContext, closestCenter,
+  KeyboardSensor, PointerSensor, TouchSensor,
+  useSensor, useSensors, type DragEndEvent,
+} from '@dnd-kit/core';
+import {
+  SortableContext, sortableKeyboardCoordinates,
+  verticalListSortingStrategy, useSortable, arrayMove,
+} from '@dnd-kit/sortable';
+import { CSS } from '@dnd-kit/utilities';
+
+type VocabItem = { id: string; word: string; meaning: string };
+
+function SortableVocabItem({ v, updateV, removeVRow }: {
+  v: VocabItem;
+  updateV: (id: string, field: 'word' | 'meaning', val: string) => void;
+  removeVRow: (id: string) => void;
+}) {
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: v.id });
+  return (
+    <div ref={setNodeRef} style={{ transform: CSS.Transform.toString(transform), transition, opacity: isDragging ? 0.5 : 1 }} className="ve">
+      <span className="vdrag" {...attributes} {...listeners}>⠿</span>
+      <input type="text" placeholder="Слово" value={v.word} onChange={e => updateV(v.id, 'word', e.target.value)} />
+      <textarea placeholder="Объяснение" value={v.meaning} onChange={e => updateV(v.id, 'meaning', e.target.value)} className="ve-meaning" />
+      <button type="button" className="vd" onClick={() => removeVRow(v.id)}>✕</button>
+    </div>
+  );
+}
 
 const LL_FULL: Record<string, string> = {
   ru: '🇷🇺 Русский',
@@ -32,8 +60,25 @@ export default function BookPage({ params }: { params: { id: string } }) {
   const [editingTab, setEditingTab] = useState<string | null>(null);
   const [editFormOpen, setEditFormOpen] = useState(false);
   const [editSynopsis, setEditSynopsis] = useState("");
-  const [editVocab, setEditVocab] = useState<{ id: string; word: string; meaning: string }[]>([]);
+  const [editVocab, setEditVocab] = useState<VocabItem[]>([]);
   const [editQuotes, setEditQuotes] = useState<{ id: string; text: string }[]>([]);
+
+  const sensors = useSensors(
+    useSensor(PointerSensor),
+    useSensor(TouchSensor),
+    useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates }),
+  );
+
+  const handleVocabDragEnd = (event: DragEndEvent) => {
+    const { active, over } = event;
+    if (over && active.id !== over.id) {
+      setEditVocab(items => {
+        const oldIndex = items.findIndex(i => i.id === active.id);
+        const newIndex = items.findIndex(i => i.id === over.id);
+        return arrayMove(items, oldIndex, newIndex);
+      });
+    }
+  };
 
   const { data: book, isLoading, error } = useGetBook(params.id);
   const { data: notes = [] } = useListNotes(params.id);
@@ -302,15 +347,15 @@ export default function BookPage({ params }: { params: { id: string } }) {
               <>
                 {editingTab === 'vocab' ? (
                   <div>
-                    <div className="vlist">
-                      {editVocab.map(v => (
-                        <div key={v.id} className="ve">
-                          <input type="text" placeholder="Слово" value={v.word} onChange={e => updateV(v.id, 'word', e.target.value)} />
-                          <textarea placeholder="Объяснение" value={v.meaning} onChange={e => updateV(v.id, 'meaning', e.target.value)} className="ve-meaning" />
-                          <button type="button" className="vd" onClick={() => removeVRow(v.id)}>✕</button>
+                    <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleVocabDragEnd}>
+                      <SortableContext items={editVocab.map(v => v.id)} strategy={verticalListSortingStrategy}>
+                        <div className="vlist">
+                          {editVocab.map(v => (
+                            <SortableVocabItem key={v.id} v={v} updateV={updateV} removeVRow={removeVRow} />
+                          ))}
                         </div>
-                      ))}
-                    </div>
+                      </SortableContext>
+                    </DndContext>
                     <button type="button" className="vadd" onClick={addVRow}>+ Добавить слово</button>
                     <div style={{ display: 'flex', gap: '8px', marginTop: '10px' }}>
                       <button className="vedit" onClick={cancelEdit}>Отмена</button>
@@ -326,7 +371,7 @@ export default function BookPage({ params }: { params: { id: string } }) {
                         <thead><tr><th style={{ width: '36px', textAlign: 'center' }}>№</th><th>Слово</th><th>Объяснение</th></tr></thead>
                         <tbody>
                           {book.vocab.map((v, i) => (
-                            <tr key={i}><td style={{ textAlign: 'center', opacity: 0.5 }}>{i + 1}</td><td>{v.word}</td><td>{v.meaning}</td></tr>
+                            <tr key={i}><td style={{ textAlign: 'center', opacity: 0.5 }}>{i + 1}</td><td>{v.word}</td><td style={{ whiteSpace: 'pre-line' }}>{v.meaning}</td></tr>
                           ))}
                         </tbody>
                       </table>
