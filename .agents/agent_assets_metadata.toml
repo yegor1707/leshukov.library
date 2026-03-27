@@ -1,0 +1,8 @@
+uploads = []
+generated = []
+
+[[outputs]]
+id = "RgVNtCGIMuR1jSvIaLrPx"
+uri = "file://artifacts/library/public/apple-touch-icon.png"
+type = "image"
+title = "Иконка рабочего стола (iPhone)"
