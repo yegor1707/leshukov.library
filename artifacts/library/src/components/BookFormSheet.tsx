@@ -22,7 +22,7 @@ export function BookFormSheet({ isOpen, onClose, editBook }: BookFormSheetProps)
   const [year, setYear] = useState("");
   const [rating, setRating] = useState(0);
   const [synopsis, setSynopsis] = useState("");
-  const [quotes, setQuotes] = useState("");
+  const [quoteItems, setQuoteItems] = useState<{ id: string; text: string }[]>([]);
   const [thoughts, setThoughts] = useState("");
   const [vocab, setVocab] = useState<{id: string, word: string, meaning: string}[]>([]);
   const [coverBase64, setCoverBase64] = useState<string | null>(null);
@@ -40,14 +40,14 @@ export function BookFormSheet({ isOpen, onClose, editBook }: BookFormSheetProps)
         setYear(editBook.year?.toString() || "");
         setRating(editBook.rating || 0);
         setSynopsis(editBook.synopsis || "");
-        setQuotes(editBook.quotes || "");
+        setQuoteItems((editBook.quotes || "").split('\n').filter(l => l.trim()).map(l => ({ id: Math.random().toString(), text: l })));
         setThoughts(editBook.thoughts || "");
         setVocab(editBook.vocab?.map(v => ({ id: Math.random().toString(), ...v })) || []);
         setCoverBase64(editBook.cover || null);
         setCoverOrigSrc(null);
       } else {
         setTitle(""); setAuthor(""); setLang("ru"); setGenre(""); setYear("");
-        setRating(0); setSynopsis(""); setQuotes(""); setThoughts(""); setVocab([]);
+        setRating(0); setSynopsis(""); setQuoteItems([]); setThoughts(""); setVocab([]);
         setCoverBase64(null); setCoverOrigSrc(null);
       }
     }
@@ -80,7 +80,7 @@ export function BookFormSheet({ isOpen, onClose, editBook }: BookFormSheetProps)
       data: {
         title: title.trim(), author: author.trim(), lang, genre,
         year: year ? parseInt(year) : null, rating,
-        synopsis: synopsis.trim(), quotes: quotes.trim(), thoughts: thoughts.trim(),
+        synopsis: synopsis.trim(), quotes: quoteItems.filter(q => q.text.trim()).map(q => q.text.trim()).join('\n'), thoughts: thoughts.trim(),
         vocab: vocab.filter(v => v.word.trim()).map(v => ({ word: v.word.trim(), meaning: v.meaning.trim() })),
         cover: coverBase64
       }
@@ -247,7 +247,25 @@ export function BookFormSheet({ isOpen, onClose, editBook }: BookFormSheetProps)
 
             <div className="field">
               <label>Цитаты</label>
-              <textarea value={quotes} onChange={e => setQuotes(e.target.value)} placeholder={"«Цитата»\n«Ещё одна»"} style={{ minHeight: '80px' }}></textarea>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '7px', marginBottom: '8px' }}>
+                {quoteItems.map(q => (
+                  <div key={q.id} style={{ display: 'grid', gridTemplateColumns: '1fr auto', gap: '6px', alignItems: 'flex-start' }}>
+                    <textarea
+                      value={q.text}
+                      onChange={e => setQuoteItems(quoteItems.map(x => x.id === q.id ? { ...x, text: e.target.value } : x))}
+                      placeholder="«Цитата из книги»"
+                      style={{
+                        width: '100%', padding: '8px 9px', background: 'rgba(8,16,10,.8)',
+                        border: '1px solid var(--border)', fontFamily: "'IM Fell English', serif",
+                        fontSize: '.9rem', color: 'var(--text)', outline: 'none',
+                        resize: 'vertical', lineHeight: 1.6, minHeight: '60px', borderRadius: 0,
+                      }}
+                    />
+                    <button type="button" className="vd" style={{ height: '60px', width: '28px' }} onClick={() => setQuoteItems(quoteItems.filter(x => x.id !== q.id))}>✕</button>
+                  </div>
+                ))}
+              </div>
+              <button type="button" className="vadd" onClick={() => setQuoteItems([...quoteItems, { id: Math.random().toString(), text: '' }])}>+ Добавить цитату</button>
             </div>
 
             <div className="field">
