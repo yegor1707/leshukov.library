@@ -2,19 +2,17 @@ import { Switch, Route, Router as WouterRouter } from "wouter";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { ToastContainer } from "@/components/Toast";
 import Home from "@/pages/Home";
+import BookPage from "@/pages/BookPage";
 
 const queryClient = new QueryClient();
 
 function NotFound() {
   return (
-    <div className="min-h-screen w-full flex items-center justify-center bg-[#0d1c11] text-[#d5ccac]">
-      <div className="text-center">
-        <h1 className="text-4xl font-bold" style={{fontFamily: "var(--font-playfair)"}}>404</h1>
-        <p className="mt-4 opacity-70">Страница не найдена</p>
-        <a href="/" className="mt-6 inline-block border border-[#a68838] text-[#c8a84a] px-6 py-2 uppercase text-sm tracking-widest hover:bg-[#a68838] hover:text-[#0d1c11] transition-colors duration-200">
-          Вернуться в библиотеку
-        </a>
-      </div>
+    <div style={{ minHeight: '100vh', background: 'var(--bg)', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '16px' }}>
+      <h1 style={{ fontFamily: "'Playfair Display', serif", fontSize: '2rem', color: 'var(--ivory)' }}>404</h1>
+      <a href="/" style={{ border: '1px solid var(--gold2)', color: 'var(--gold)', padding: '10px 20px', fontFamily: "'Crimson Text', serif", fontSize: '.85rem', letterSpacing: '.14em', textTransform: 'uppercase', textDecoration: 'none' }}>
+        В библиотеку
+      </a>
     </div>
   );
 }
@@ -23,6 +21,7 @@ function Router() {
   return (
     <Switch>
       <Route path="/" component={Home} />
+      <Route path="/book/:id" component={BookPage} />
       <Route component={NotFound} />
     </Switch>
   );

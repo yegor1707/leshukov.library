@@ -1,9 +1,9 @@
 import { useState } from "react";
+import { useLocation } from "wouter";
 import { Book } from "@workspace/api-client-react";
 import { useBooksData } from "@/hooks/use-books";
 import { useAdmin } from "@/hooks/use-admin";
 import { BookFormSheet } from "@/components/BookFormSheet";
-import { BookViewSheet } from "@/components/BookViewSheet";
 import { showToast } from "@/components/Toast";
 
 const LL: Record<string, string> = { ru: 'RU', en: 'EN', other: '?' };
@@ -33,11 +33,8 @@ function AdminLoginModal({
   };
 
   return (
-    <div
-      className="overlay open"
-      onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}
-    >
-      <div className="sheet" style={{ maxHeight: "auto" }}>
+    <div className="overlay open" onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}>
+      <div className="sheet">
         <div className="sheet-handle"></div>
         <div className="sh">
           <div className="sh-lbl">Управление библиотекой</div>
@@ -47,7 +44,6 @@ function AdminLoginModal({
         <div className="fb">
           <p style={{ fontFamily: "'Crimson Text', serif", color: "var(--text2)", fontSize: ".95rem", marginBottom: "16px", lineHeight: 1.6 }}>
             Введите пароль, чтобы добавлять и редактировать книги.
-            Гости могут просматривать библиотеку без пароля.
           </p>
           <form onSubmit={handleSubmit}>
             <div className="field">
@@ -76,26 +72,19 @@ function AdminLoginModal({
 }
 
 export default function Home() {
+  const [, navigate] = useLocation();
   const [langF, setLangF] = useState<string>('all');
   const [search, setSearch] = useState<string>('');
   const { data: books = [], isLoading } = useBooksData(langF, search);
 
   const [isAddOpen, setIsAddOpen] = useState(false);
-  const [editingBook, setEditingBook] = useState<Book | null>(null);
-  const [viewBook, setViewBook] = useState<Book | null>(null);
+  const [editingBook] = useState<Book | null>(null);
   const [showLoginModal, setShowLoginModal] = useState(false);
 
   const { isAdmin, login, logout, isLoading: isLoginLoading, error: loginError, setError: setLoginError } = useAdmin();
 
   const handleOpenAdd = () => {
     if (!isAdmin) { setShowLoginModal(true); return; }
-    setEditingBook(null);
-    setIsAddOpen(true);
-  };
-
-  const handleOpenEdit = (b: Book) => {
-    setViewBook(null);
-    setEditingBook(b);
     setIsAddOpen(true);
   };
 
@@ -116,10 +105,16 @@ export default function Home() {
         <p className="h-sub">Книжная коллекция · Заметки · Мысли</p>
 
         <div className="lang-tabs">
-          <button className={`lt ${langF === 'all' ? 'active' : ''}`} onClick={() => setLangF('all')}>Все</button>
-          <button className={`lt ${langF === 'ru' ? 'active' : ''}`} onClick={() => setLangF('ru')}>Русские</button>
-          <button className={`lt ${langF === 'en' ? 'active' : ''}`} onClick={() => setLangF('en')}>English</button>
-          <button className={`lt ${langF === 'other' ? 'active' : ''}`} onClick={() => setLangF('other')}>Другие</button>
+          {[
+            { key: 'all', label: 'Все' },
+            { key: 'ru', label: 'Русские' },
+            { key: 'en', label: 'English' },
+            { key: 'other', label: 'Другие' },
+          ].map(t => (
+            <button key={t.key} className={`lt ${langF === t.key ? 'active' : ''}`} onClick={() => setLangF(t.key)}>
+              {t.label}
+            </button>
+          ))}
         </div>
 
         {isAdmin ? (
@@ -130,26 +125,16 @@ export default function Home() {
               </svg>
               Добавить книгу
             </button>
-            <button
-              className="add-btn"
-              style={{ flex: "none", padding: "12px 14px", opacity: 0.6 }}
-              onClick={handleLogout}
-              title="Выйти из режима редактирования"
-            >
+            <button className="add-btn" style={{ flex: "none", padding: "12px 14px", opacity: 0.6 }} onClick={handleLogout} title="Выйти из режима редактирования">
               🔓
             </button>
           </div>
         ) : (
           <div style={{ display: "flex", gap: "8px" }}>
-            <button className="add-btn" style={{ flex: 1, opacity: 0.4, cursor: "default", pointerEvents: "none" }}>
+            <div className="add-btn" style={{ flex: 1, opacity: 0.35, cursor: "default", justifyContent: "center" }}>
               Библиотека Лешуковых
-            </button>
-            <button
-              className="add-btn"
-              style={{ flex: "none", padding: "12px 14px" }}
-              onClick={() => setShowLoginModal(true)}
-              title="Управление библиотекой"
-            >
+            </div>
+            <button className="add-btn" style={{ flex: "none", padding: "12px 14px" }} onClick={() => setShowLoginModal(true)} title="Управление">
               🔒
             </button>
           </div>
@@ -176,9 +161,7 @@ export default function Home() {
 
       <div className="grid-books">
         {isLoading ? (
-          <div className="empty">
-            <p>Загрузка библиотеки...</p>
-          </div>
+          <div className="empty"><p>Загрузка…</p></div>
         ) : books.length === 0 ? (
           <div className="empty">
             <div className="ei">📚</div>
@@ -191,7 +174,7 @@ export default function Home() {
               key={b.id}
               className="book-card"
               style={{ animationDelay: `${i * 0.04}s` }}
-              onClick={() => setViewBook(b)}
+              onClick={() => navigate(`/book/${b.id}`)}
             >
               <div className="card-cover">
                 {b.cover ? (
@@ -222,14 +205,6 @@ export default function Home() {
         isOpen={isAddOpen}
         onClose={() => setIsAddOpen(false)}
         editBook={editingBook}
-      />
-
-      <BookViewSheet
-        isOpen={!!viewBook}
-        book={viewBook}
-        onClose={() => setViewBook(null)}
-        onEdit={() => viewBook && handleOpenEdit(viewBook)}
-        isAdmin={isAdmin}
       />
 
       {showLoginModal && (

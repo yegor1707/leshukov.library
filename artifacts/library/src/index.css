@@ -65,9 +65,9 @@ h1{font-family:'Playfair Display',serif;font-size:2.1rem;font-weight:900;color:v
 h1 em{font-style:italic;color:var(--gold);}
 .h-sub{font-family:'IM Fell English',serif;font-size:.88rem;color:var(--text2);font-style:italic;margin-bottom:20px;}
 .lang-tabs{display:flex;border:1px solid var(--border);overflow:hidden;margin-bottom:18px;}
-.lt{flex:1;padding:8px 4px;font-family:'Crimson Text',serif;font-size:.76rem;letter-spacing:.1em;text-transform:uppercase;color:var(--text2);background:transparent;border:none;cursor:pointer;transition:all .2s;border-right:1px solid var(--border);}
+.lt{flex:1;padding:9px 4px;font-family:'IM Fell English',serif;font-size:.92rem;font-style:italic;color:var(--text2);background:transparent;border:none;cursor:pointer;transition:all .2s;border-right:1px solid var(--border);}
 .lt:last-child{border-right:none;}
-.lt.active{background:rgba(200,168,74,.14);color:var(--ivory);}
+.lt.active{background:rgba(200,168,74,.12);color:var(--gold);font-style:italic;}
 .add-btn{display:flex;align-items:center;justify-content:center;gap:8px;width:100%;background:transparent;border:1px solid var(--gold2);color:var(--gold);font-family:'Crimson Text',serif;font-size:.86rem;letter-spacing:.17em;text-transform:uppercase;padding:12px;cursor:pointer;transition:all .22s;}
 .add-btn:active{background:var(--gold2);color:var(--bg);}
 
