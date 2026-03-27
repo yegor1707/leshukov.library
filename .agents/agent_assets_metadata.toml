@@ -12,3 +12,9 @@ id = "lH7d2grCIlvOLd4sfdUXn"
 uri = "file://screenshots/leshukov-library.jpg"
 type = "image"
 title = "Leshukov Library — скриншот"
+
+[[outputs]]
+id = "5e2sQ4MY9Rs7S8q23Hk9l"
+uri = "file://screenshots/leshukov-library-project.tar.gz"
+type = "unspecified"
+title = "Leshukov Library — исходный код"
