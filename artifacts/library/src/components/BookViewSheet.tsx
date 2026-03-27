@@ -8,6 +8,7 @@ interface BookViewSheetProps {
   isOpen: boolean;
   onClose: () => void;
   onEdit: () => void;
+  isAdmin?: boolean;
 }
 
 const LL_FULL: Record<string, string> = {
@@ -16,7 +17,7 @@ const LL_FULL: Record<string, string> = {
   other: 'Другой'
 };
 
-export function BookViewSheet({ book, isOpen, onClose, onEdit }: BookViewSheetProps) {
+export function BookViewSheet({ book, isOpen, onClose, onEdit, isAdmin }: BookViewSheetProps) {
   const [activeTab, setActiveTab] = useState('synopsis');
   const [sonNoteText, setSonNoteText] = useState("");
   
@@ -165,10 +166,12 @@ export function BookViewSheet({ book, isOpen, onClose, onEdit }: BookViewSheetPr
           </div>
         </div>
 
-        <div className="vact">
-          <button className="vedit" onClick={onEdit}>&#9998; Редактировать</button>
-          <button className="vdelbtn" onClick={handleDelete} disabled={isDeleting}>Удалить</button>
-        </div>
+        {isAdmin && (
+          <div className="vact">
+            <button className="vedit" onClick={onEdit}>✎ Редактировать</button>
+            <button className="vdelbtn" onClick={handleDelete} disabled={isDeleting}>Удалить</button>
+          </div>
+        )}
 
       </div>
     </div>
