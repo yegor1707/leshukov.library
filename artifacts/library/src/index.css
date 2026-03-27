@@ -146,8 +146,11 @@ h1 em{font-style:italic;color:var(--gold);}
 
 /* vocab */
 .vlist{display:flex;flex-direction:column;gap:7px;margin-bottom:8px;}
-.ve{display:grid;grid-template-columns:1fr 1.6fr auto;gap:6px;}
+.ve{display:grid;grid-template-columns:1fr 1.6fr auto;gap:6px;align-items:start;}
 .ve input{padding:8px 9px;}
+.ve-meaning{padding:8px 9px;min-height:36px;max-height:120px;overflow-y:auto;resize:none;touch-action:pan-y;overscroll-behavior:contain;background:rgba(8,16,10,.8);border:1px solid var(--border);font-family:'Crimson Text',serif;font-size:.95rem;color:var(--text);outline:none;line-height:1.5;border-radius:0;width:100%;}
+.ve-meaning:focus{border-color:var(--gold2);}
+.ve-meaning::placeholder{color:var(--text3);font-style:italic;}
 .vd{width:28px;height:36px;flex-shrink:0;background:transparent;border:1px solid rgba(122,53,32,.35);color:var(--rust);cursor:pointer;font-size:.82rem;display:flex;align-items:center;justify-content:center;}
 .vd:active{background:var(--rust);color:var(--ivory);}
 .vadd{display:flex;align-items:center;gap:5px;padding:7px 11px;background:transparent;border:1px dashed rgba(200,168,74,.2);font-family:'Crimson Text',serif;font-size:.76rem;letter-spacing:.1em;text-transform:uppercase;color:var(--text3);cursor:pointer;width:100%;justify-content:center;}

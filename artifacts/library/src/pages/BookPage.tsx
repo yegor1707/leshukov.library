@@ -306,7 +306,7 @@ export default function BookPage({ params }: { params: { id: string } }) {
                       {editVocab.map(v => (
                         <div key={v.id} className="ve">
                           <input type="text" placeholder="Слово" value={v.word} onChange={e => updateV(v.id, 'word', e.target.value)} />
-                          <input type="text" placeholder="Объяснение" value={v.meaning} onChange={e => updateV(v.id, 'meaning', e.target.value)} />
+                          <textarea placeholder="Объяснение" value={v.meaning} onChange={e => updateV(v.id, 'meaning', e.target.value)} className="ve-meaning" />
                           <button type="button" className="vd" onClick={() => removeVRow(v.id)}>✕</button>
                         </div>
                       ))}
