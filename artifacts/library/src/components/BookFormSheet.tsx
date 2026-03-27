@@ -283,6 +283,8 @@ export function BookFormSheet({ isOpen, onClose, editBook }: BookFormSheetProps)
       {cropOrigSrc && (
         <Cropper
           imageSrc={cropOrigSrc}
+          defaultOrient="portrait"
+          hideToggle
           onCancel={() => setCropOrigSrc(null)}
           onApply={(b64) => {
             setCoverBase64(b64);

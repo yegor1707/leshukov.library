@@ -20,6 +20,7 @@ export const booksTable = pgTable("books", {
   thoughts: text("thoughts"),
   vocab: jsonb("vocab").notNull().default([]).$type<{ word: string; meaning: string }[]>(),
   cover: text("cover"),
+  coverLandscape: text("cover_landscape"),
   createdAt: timestamp("created_at").notNull().defaultNow(),
 });
 

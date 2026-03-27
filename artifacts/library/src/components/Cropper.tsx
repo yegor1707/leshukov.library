@@ -11,10 +11,12 @@ interface CropperProps {
   imageSrc: string;
   onApply: (base64: string) => void;
   onCancel: () => void;
+  defaultOrient?: Orient;
+  hideToggle?: boolean;
 }
 
-export function Cropper({ imageSrc, onApply, onCancel }: CropperProps) {
-  const [orient, setOrient] = useState<Orient>('portrait');
+export function Cropper({ imageSrc, onApply, onCancel, defaultOrient = 'portrait', hideToggle = false }: CropperProps) {
+  const [orient, setOrient] = useState<Orient>(defaultOrient);
   const frameRef = useRef<HTMLDivElement>(null);
   const imgRef = useRef<HTMLImageElement>(null);
   const overlayRef = useRef<HTMLDivElement>(null);
@@ -24,81 +26,93 @@ export function Cropper({ imageSrc, onApply, onCancel }: CropperProps) {
     offY: 0,
     imgNW: 0,
     imgNH: 0,
-    scale: 1,
     userZoom: 1,
     loaded: false,
   });
 
   const dragRef = useRef<{ x: number; y: number; ox: number; oy: number } | null>(null);
-  const pinchRef = useRef<{ dist: number; zoom: number } | null>(null);
-  const [, forceUpdate] = useState(0);
+  const pinchRef = useRef<{ dist: number; zoom: number; midX: number; midY: number } | null>(null);
+  const [displayZoom, setDisplayZoom] = useState(1);
 
-  const getFrameSize = (currentOrient: Orient) => {
+  const getFrameSize = (o: Orient) => {
     const maxW = Math.min(320, window.innerWidth - 40);
-    const asp = ASPECTS[currentOrient];
+    const asp = ASPECTS[o];
     return { fw: maxW, fh: Math.round(maxW / asp) };
   };
 
+  const getBaseScale = (nw: number, nh: number, o: Orient) => {
+    const { fw, fh } = getFrameSize(o);
+    return Math.max(fw / nw, fh / nh);
+  };
+
+  // Apply layout: set frame size, image size and position
   const applyLayout = useCallback((
     nw: number, nh: number,
-    currentOrient: Orient,
+    o: Orient,
     userZoom: number,
     offX: number, offY: number,
-    resetOffset = false
   ) => {
     if (!frameRef.current || !imgRef.current) return;
-    const { fw, fh } = getFrameSize(currentOrient);
-    frameRef.current.style.width = `${fw}px`;
-    frameRef.current.style.height = `${fh}px`;
-
-    const baseScale = Math.max(fw / nw, fh / nh);
+    const { fw, fh } = getFrameSize(o);
+    const baseScale = getBaseScale(nw, nh, o);
     const scale = baseScale * userZoom;
 
     const rW = Math.round(nw * scale);
     const rH = Math.round(nh * scale);
 
-    const newOffX = resetOffset ? Math.max(0, (rW - fw) / 2) : Math.max(0, Math.min(offX, rW - fw));
-    const newOffY = resetOffset ? Math.max(0, (rH - fh) / 2) : Math.max(0, Math.min(offY, rH - fh));
+    // Clamp offsets
+    const clampedOffX = Math.max(0, Math.min(offX, Math.max(0, rW - fw)));
+    const clampedOffY = Math.max(0, Math.min(offY, Math.max(0, rH - fh)));
 
+    frameRef.current.style.width = `${fw}px`;
+    frameRef.current.style.height = `${fh}px`;
     imgRef.current.style.width = `${rW}px`;
     imgRef.current.style.height = `${rH}px`;
-    imgRef.current.style.left = `-${newOffX}px`;
-    imgRef.current.style.top = `-${newOffY}px`;
+    imgRef.current.style.left = `-${clampedOffX}px`;
+    imgRef.current.style.top = `-${clampedOffY}px`;
 
-    stateRef.current = { offX: newOffX, offY: newOffY, imgNW: nw, imgNH: nh, scale, userZoom, loaded: true };
-    forceUpdate(n => n + 1);
+    stateRef.current = { offX: clampedOffX, offY: clampedOffY, imgNW: nw, imgNH: nh, userZoom, loaded: true };
+    setDisplayZoom(userZoom);
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const onImageLoad = (e: React.SyntheticEvent<HTMLImageElement>) => {
     const t = e.target as HTMLImageElement;
-    applyLayout(t.naturalWidth, t.naturalHeight, orient, 1, 0, 0, true);
+    const nw = t.naturalWidth;
+    const nh = t.naturalHeight;
+    const { fw, fh } = getFrameSize(orient);
+    const baseScale = getBaseScale(nw, nh, orient);
+    const rW = Math.round(nw * baseScale);
+    const rH = Math.round(nh * baseScale);
+    // Center the image
+    const offX = Math.max(0, (rW - fw) / 2);
+    const offY = Math.max(0, (rH - fh) / 2);
+    applyLayout(nw, nh, orient, 1, offX, offY);
   };
 
-  // Zoom centered on the visible center of the frame
-  const zoom = (delta: number) => {
+  // Zoom: scale from the center of the visible area
+  const zoom = useCallback((newZoom: number) => {
     const s = stateRef.current;
-    if (!s.loaded) return;
-    const newZoom = Math.max(1, Math.min(4, s.userZoom + delta));
+    if (!s.loaded || !frameRef.current) return;
+    const clamped = Math.max(1, Math.min(4, newZoom));
     const { fw, fh } = getFrameSize(orient);
-    // Keep the center of the visible area fixed during zoom
-    const oldScale = s.scale;
-    const baseScale = Math.max(fw / s.imgNW, fh / s.imgNH);
-    const newScale = baseScale * newZoom;
-    const centerOrigX = (s.offX + fw / 2) / oldScale;
-    const centerOrigY = (s.offY + fh / 2) / oldScale;
-    const newOffX = centerOrigX * newScale - fw / 2;
-    const newOffY = centerOrigY * newScale - fh / 2;
-    applyLayout(s.imgNW, s.imgNH, orient, newZoom, newOffX, newOffY);
-  };
+    // Ratio between new and current zoom
+    const ratio = clamped / s.userZoom;
+    // Keep the center of the current visible area at the same position
+    const newOffX = (s.offX + fw / 2) * ratio - fw / 2;
+    const newOffY = (s.offY + fh / 2) * ratio - fh / 2;
+    applyLayout(s.imgNW, s.imgNH, orient, clamped, newOffX, newOffY);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [orient, applyLayout]);
 
   const handleWheel = (e: React.WheelEvent) => {
     e.preventDefault();
-    zoom(e.deltaY < 0 ? 0.15 : -0.15);
+    const s = stateRef.current;
+    zoom(s.userZoom + (e.deltaY < 0 ? 0.1 : -0.1));
   };
 
-  const getXY = (e: React.MouseEvent | React.TouchEvent | MouseEvent | TouchEvent) => {
-    if ('touches' in e) return { x: e.touches[0].clientX, y: e.touches[0].clientY };
+  const getXY = (e: React.MouseEvent | MouseEvent | TouchEvent) => {
+    if ('touches' in e) return { x: (e as TouchEvent).touches[0].clientX, y: (e as TouchEvent).touches[0].clientY };
     return { x: (e as MouseEvent).clientX, y: (e as MouseEvent).clientY };
   };
 
@@ -108,101 +122,113 @@ export function Cropper({ imageSrc, onApply, onCancel }: CropperProps) {
     return Math.sqrt(dx * dx + dy * dy);
   };
 
-  const handleStart = (e: React.MouseEvent | React.TouchEvent) => {
-    if ('touches' in e && e.touches.length === 2) return;
-    const p = getXY(e);
+  const handleDragStart = (e: React.MouseEvent | React.TouchEvent) => {
+    if ('touches' in e && (e as React.TouchEvent).touches.length >= 2) return;
+    const p = getXY(e as React.MouseEvent);
     dragRef.current = { x: p.x, y: p.y, ox: stateRef.current.offX, oy: stateRef.current.offY };
   };
 
   useEffect(() => {
-    const frame = frameRef.current;
     const overlay = overlayRef.current;
-    if (!frame || !overlay) return;
+    const frame = frameRef.current;
+    if (!overlay || !frame) return;
 
-    // Prevent ALL default touch behaviour on the overlay to block browser pinch-zoom
-    const blockDefault = (e: TouchEvent) => {
+    // Prevent browser pinch-to-zoom on the entire overlay
+    const blockBrowserZoom = (e: TouchEvent) => {
       if (e.touches.length >= 2) e.preventDefault();
     };
 
-    const handleTouchStart = (e: TouchEvent) => {
+    const onTouchStart = (e: TouchEvent) => {
       if (e.touches.length === 2) {
         e.preventDefault();
         dragRef.current = null;
-        pinchRef.current = { dist: getPinchDist(e), zoom: stateRef.current.userZoom };
+        const s = stateRef.current;
+        const { fw, fh } = getFrameSize(orient);
+        const midX = (e.touches[0].clientX + e.touches[1].clientX) / 2;
+        const midY = (e.touches[0].clientY + e.touches[1].clientY) / 2;
+        pinchRef.current = { dist: getPinchDist(e), zoom: s.userZoom, midX, midY };
       }
     };
 
-    const handleMove = (e: MouseEvent | TouchEvent) => {
-      if (!imgRef.current || !frameRef.current) return;
+    const onMove = (e: MouseEvent | TouchEvent) => {
       if (e.cancelable) e.preventDefault();
 
-      if ('touches' in e && e.touches.length === 2 && pinchRef.current) {
-        const newDist = getPinchDist(e);
+      if ('touches' in e && (e as TouchEvent).touches.length === 2 && pinchRef.current) {
+        const te = e as TouchEvent;
+        const newDist = getPinchDist(te);
         const ratio = newDist / pinchRef.current.dist;
         const s = stateRef.current;
         const newZoom = Math.max(1, Math.min(4, pinchRef.current.zoom * ratio));
-        // Keep pinch midpoint fixed
         const { fw, fh } = getFrameSize(orient);
-        const baseScale = Math.max(fw / s.imgNW, fh / s.imgNH);
-        const newScale = baseScale * newZoom;
-        const midX = (e.touches[0].clientX + e.touches[1].clientX) / 2;
-        const midY = (e.touches[0].clientY + e.touches[1].clientY) / 2;
-        const rect = frameRef.current.getBoundingClientRect();
-        const pivotX = midX - rect.left;
-        const pivotY = midY - rect.top;
-        const origPivotX = (s.offX + pivotX) / s.scale;
-        const origPivotY = (s.offY + pivotY) / s.scale;
-        const newOffX = origPivotX * newScale - pivotX;
-        const newOffY = origPivotY * newScale - pivotY;
-        applyLayout(s.imgNW, s.imgNH, orient, newZoom, newOffX, newOffY);
+        const zoomRatio = newZoom / s.userZoom;
+        // Zoom from pinch midpoint relative to frame
+        if (frameRef.current) {
+          const rect = frameRef.current.getBoundingClientRect();
+          const pivotX = pinchRef.current.midX - rect.left;
+          const pivotY = pinchRef.current.midY - rect.top;
+          const newOffX = (s.offX + pivotX) * zoomRatio - pivotX;
+          const newOffY = (s.offY + pivotY) * zoomRatio - pivotY;
+          applyLayout(s.imgNW, s.imgNH, orient, newZoom, newOffX, newOffY);
+        }
         return;
       }
 
-      if (!dragRef.current) return;
+      if (!dragRef.current || !imgRef.current || !frameRef.current) return;
       const p = getXY(e);
-      const rW = parseInt(imgRef.current.style.width) || 0;
-      const rH = parseInt(imgRef.current.style.height) || 0;
-      const fW = frameRef.current.offsetWidth;
-      const fH = frameRef.current.offsetHeight;
-      const newOffX = Math.max(0, Math.min(dragRef.current.ox + (dragRef.current.x - p.x), rW - fW));
-      const newOffY = Math.max(0, Math.min(dragRef.current.oy + (dragRef.current.y - p.y), rH - fH));
+      const s = stateRef.current;
+      const rW = imgRef.current.offsetWidth;
+      const rH = imgRef.current.offsetHeight;
+      const fw = frameRef.current.offsetWidth;
+      const fh = frameRef.current.offsetHeight;
+      const newOffX = Math.max(0, Math.min(dragRef.current.ox + (dragRef.current.x - p.x), rW - fw));
+      const newOffY = Math.max(0, Math.min(dragRef.current.oy + (dragRef.current.y - p.y), rH - fh));
       imgRef.current.style.left = `-${newOffX}px`;
       imgRef.current.style.top = `-${newOffY}px`;
-      stateRef.current = { ...stateRef.current, offX: newOffX, offY: newOffY };
+      stateRef.current = { ...s, offX: newOffX, offY: newOffY };
     };
 
-    const handleEnd = () => {
+    const onEnd = () => {
       dragRef.current = null;
       pinchRef.current = null;
     };
 
-    overlay.addEventListener('touchstart', blockDefault, { passive: false });
-    frame.addEventListener('touchstart', handleTouchStart, { passive: false });
-    document.addEventListener('mousemove', handleMove);
-    document.addEventListener('touchmove', handleMove, { passive: false });
-    document.addEventListener('mouseup', handleEnd);
-    document.addEventListener('touchend', handleEnd);
+    overlay.addEventListener('touchstart', blockBrowserZoom, { passive: false });
+    frame.addEventListener('touchstart', onTouchStart, { passive: false });
+    document.addEventListener('mousemove', onMove);
+    document.addEventListener('touchmove', onMove, { passive: false });
+    document.addEventListener('mouseup', onEnd);
+    document.addEventListener('touchend', onEnd);
 
     return () => {
-      overlay.removeEventListener('touchstart', blockDefault);
-      frame.removeEventListener('touchstart', handleTouchStart);
-      document.removeEventListener('mousemove', handleMove);
-      document.removeEventListener('touchmove', handleMove);
-      document.removeEventListener('mouseup', handleEnd);
-      document.removeEventListener('touchend', handleEnd);
+      overlay.removeEventListener('touchstart', blockBrowserZoom);
+      frame.removeEventListener('touchstart', onTouchStart);
+      document.removeEventListener('mousemove', onMove);
+      document.removeEventListener('touchmove', onMove);
+      document.removeEventListener('mouseup', onEnd);
+      document.removeEventListener('touchend', onEnd);
     };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [orient, applyLayout]);
 
   const handleOrientChange = (o: Orient) => {
     setOrient(o);
     const s = stateRef.current;
-    if (s.loaded) applyLayout(s.imgNW, s.imgNH, o, s.userZoom, s.offX, s.offY, true);
+    if (s.loaded) {
+      const { fw, fh } = getFrameSize(o);
+      const baseScale = getBaseScale(s.imgNW, s.imgNH, o);
+      const rW = Math.round(s.imgNW * baseScale * s.userZoom);
+      const rH = Math.round(s.imgNH * baseScale * s.userZoom);
+      // Re-center after orientation change
+      const offX = Math.max(0, (rW - fw) / 2);
+      const offY = Math.max(0, (rH - fh) / 2);
+      applyLayout(s.imgNW, s.imgNH, o, s.userZoom, offX, offY);
+    }
   };
 
   const handleApply = () => {
     if (!frameRef.current || !imgRef.current) return;
     const asp = ASPECTS[orient];
-    const outW = 600;
+    const outW = 800;
     const outH = Math.round(outW / asp);
     const canvas = document.createElement('canvas');
     canvas.width = outW;
@@ -210,15 +236,16 @@ export function Cropper({ imageSrc, onApply, onCancel }: CropperProps) {
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
     const s = stateRef.current;
-    const sx = s.offX / s.scale;
-    const sy = s.offY / s.scale;
-    const sw = frameRef.current.offsetWidth / s.scale;
-    const sh = frameRef.current.offsetHeight / s.scale;
+    const baseScale = getBaseScale(s.imgNW, s.imgNH, orient);
+    const scale = baseScale * s.userZoom;
+    const sx = s.offX / scale;
+    const sy = s.offY / scale;
+    const { fw, fh } = getFrameSize(orient);
+    const sw = fw / scale;
+    const sh = fh / scale;
     ctx.drawImage(imgRef.current, sx, sy, sw, sh, 0, 0, outW, outH);
     onApply(canvas.toDataURL('image/jpeg', 0.88));
   };
-
-  const currentZoom = stateRef.current.userZoom;
 
   return (
     <div
@@ -228,25 +255,27 @@ export function Cropper({ imageSrc, onApply, onCancel }: CropperProps) {
     >
       <div className="crop-top">
         <h3>Выберите область обложки</h3>
-        <p>Перетащите или щипком масштабируйте</p>
+        <p>Перетащите или масштабируйте</p>
       </div>
 
-      <div className="crop-orient" style={{ maxWidth: '320px' }}>
-        <button
-          className={`co-btn ${orient === 'portrait' ? 'active' : ''}`}
-          onClick={() => handleOrientChange('portrait')}
-        >📱 Портрет</button>
-        <button
-          className={`co-btn ${orient === 'landscape' ? 'active' : ''}`}
-          onClick={() => handleOrientChange('landscape')}
-        >🖼 Альбом</button>
-      </div>
+      {!hideToggle && (
+        <div className="crop-orient" style={{ maxWidth: '320px' }}>
+          <button
+            className={`co-btn ${orient === 'portrait' ? 'active' : ''}`}
+            onClick={() => handleOrientChange('portrait')}
+          >📱 Портрет</button>
+          <button
+            className={`co-btn ${orient === 'landscape' ? 'active' : ''}`}
+            onClick={() => handleOrientChange('landscape')}
+          >🖼 Альбом</button>
+        </div>
+      )}
 
       <div
         className="crop-frame"
         ref={frameRef}
-        onMouseDown={handleStart}
-        onTouchStart={handleStart}
+        onMouseDown={handleDragStart}
+        onTouchStart={handleDragStart}
         onWheel={handleWheel}
       >
         <img
@@ -258,50 +287,40 @@ export function Cropper({ imageSrc, onApply, onCancel }: CropperProps) {
         />
       </div>
 
-      {/* Zoom controls */}
-      <div style={{ display: 'flex', gap: '8px', marginTop: '10px', width: '100%', maxWidth: '320px', alignItems: 'center', justifyContent: 'center' }}>
+      {/* Zoom slider */}
+      <div style={{ display: 'flex', gap: '10px', marginTop: '12px', width: '100%', maxWidth: '320px', alignItems: 'center' }}>
         <button
-          onPointerDown={e => { e.preventDefault(); zoom(-0.2); }}
-          disabled={currentZoom <= 1}
+          onPointerDown={e => { e.preventDefault(); zoom(stateRef.current.userZoom - 0.2); }}
           style={{
-            width: '44px', height: '44px', background: 'transparent',
+            width: '44px', height: '44px', background: 'transparent', flexShrink: 0,
             border: '1px solid var(--border)', color: 'var(--text2)',
-            fontSize: '1.4rem', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center',
-            opacity: currentZoom <= 1 ? 0.3 : 1, fontFamily: 'monospace', flexShrink: 0,
-            touchAction: 'manipulation',
+            fontSize: '1.5rem', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center',
+            fontFamily: 'monospace', touchAction: 'manipulation',
+            opacity: displayZoom <= 1 ? 0.3 : 1,
           }}
         >−</button>
-        <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '4px' }}>
+
+        <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '3px' }}>
           <input
             type="range"
             min={100} max={400} step={5}
-            value={Math.round(currentZoom * 100)}
-            onChange={e => {
-              const target = Number(e.target.value) / 100;
-              const s = stateRef.current;
-              if (!s.loaded) return;
-              const { fw, fh } = getFrameSize(orient);
-              const baseScale = Math.max(fw / s.imgNW, fh / s.imgNH);
-              const newScale = baseScale * target;
-              const centerOrigX = (s.offX + fw / 2) / s.scale;
-              const centerOrigY = (s.offY + fh / 2) / s.scale;
-              applyLayout(s.imgNW, s.imgNH, orient, target, centerOrigX * newScale - fw / 2, centerOrigY * newScale - fh / 2);
-            }}
+            value={Math.round(displayZoom * 100)}
+            onChange={e => zoom(Number(e.target.value) / 100)}
             style={{ width: '100%', accentColor: 'var(--gold)', cursor: 'pointer', touchAction: 'none' }}
           />
-          <span style={{ fontFamily: "'Crimson Text', serif", fontSize: '.78rem', color: 'var(--text3)', letterSpacing: '.05em' }}>
-            {Math.round(currentZoom * 100)}%
+          <span style={{ fontFamily: "'Crimson Text', serif", fontSize: '.75rem', color: 'var(--text3)' }}>
+            {Math.round(displayZoom * 100)}%
           </span>
         </div>
+
         <button
-          onPointerDown={e => { e.preventDefault(); zoom(0.2); }}
-          disabled={currentZoom >= 4}
+          onPointerDown={e => { e.preventDefault(); zoom(stateRef.current.userZoom + 0.2); }}
           style={{
-            width: '44px', height: '44px', background: 'transparent',
+            width: '44px', height: '44px', background: 'transparent', flexShrink: 0,
             border: '1px solid var(--border)', color: 'var(--text2)',
-            fontSize: '1.4rem', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center',
-            opacity: currentZoom >= 4 ? 0.3 : 1, fontFamily: 'monospace', flexShrink: 0,
-            touchAction: 'manipulation',
+            fontSize: '1.5rem', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center',
+            fontFamily: 'monospace', touchAction: 'manipulation',
+            opacity: displayZoom >= 4 ? 0.3 : 1,
           }}
         >+</button>
       </div>

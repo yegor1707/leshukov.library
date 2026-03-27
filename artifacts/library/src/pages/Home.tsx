@@ -19,7 +19,7 @@ function PinModal({ onClose, login, isLoading, error, setError }: {
   const [shake, setShake] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
 
-  useEffect(() => { setTimeout(() => inputRef.current?.focus(), 80); }, []);
+  useEffect(() => { inputRef.current?.focus(); }, []);
 
   const tryLogin = async (code: string) => {
     const ok = await login(code);
@@ -68,6 +68,7 @@ function PinModal({ onClose, login, isLoading, error, setError }: {
             type="tel"
             inputMode="numeric"
             pattern="[0-9]*"
+            autoFocus
             maxLength={4}
             value={pin}
             onChange={handleChange}

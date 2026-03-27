@@ -27,6 +27,7 @@ export interface Book {
   thoughts?: string | null;
   vocab: VocabEntry[];
   cover?: string | null;
+  coverLandscape?: string | null;
   createdAt: string;
 }
 
@@ -42,6 +43,7 @@ export interface CreateBookInput {
   thoughts?: string | null;
   vocab: VocabEntry[];
   cover?: string | null;
+  coverLandscape?: string | null;
 }
 
 export interface Note {

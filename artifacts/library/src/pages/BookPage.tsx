@@ -34,7 +34,8 @@ export default function BookPage({ params }: { params: { id: string } }) {
   const [editVocab, setEditVocab] = useState<{ id: string; word: string; meaning: string }[]>([]);
   const [editQuotes, setEditQuotes] = useState<{ id: string; text: string }[]>([]);
 
-  const [coverBase64, setCoverBase64] = useState<string | null>(null);
+  // coverLandscape is the hero image (landscape crop) stored separately from the portrait cover
+  const [coverLandscapeBase64, setCoverLandscapeBase64] = useState<string | null>(null);
   const [coverOrigSrc, setCoverOrigSrc] = useState<string | null>(null);
   const [cropOrigSrc, setCropOrigSrc] = useState<string | null>(null);
   const [coverChanged, setCoverChanged] = useState(false);
@@ -47,7 +48,7 @@ export default function BookPage({ params }: { params: { id: string } }) {
 
   useEffect(() => {
     if (book) {
-      setCoverBase64(book.cover || null);
+      setCoverLandscapeBase64(book.coverLandscape ?? null);
       setCoverChanged(false);
     }
   }, [book]);
@@ -88,18 +89,20 @@ export default function BookPage({ params }: { params: { id: string } }) {
 
   const cancelEdit = () => setEditingTab(null);
 
+  // Build the full update payload, preserving both cover fields
   const buildBase = () => ({
     title: book!.title,
     author: book!.author,
     lang: book!.lang,
     genre: book!.genre || '',
     year: book!.year ?? null,
-    rating: book!.rating || 0,
+    rating: book!.rating ?? null,          // fix: was || 0 which fails validation (min 1)
     synopsis: book!.synopsis || '',
     quotes: book!.quotes || '',
     thoughts: book!.thoughts || '',
     vocab: book!.vocab || [],
-    cover: book!.cover || null,
+    cover: book!.cover ?? null,            // portrait cover — never changed from book page
+    coverLandscape: book!.coverLandscape ?? null,
   });
 
   const saveTab = async (tab: string) => {
@@ -118,11 +121,12 @@ export default function BookPage({ params }: { params: { id: string } }) {
     }
   };
 
+  // Save only the landscape cover (hero), keep portrait cover untouched
   const saveCover = async () => {
     if (!book) return;
     try {
       const base = buildBase();
-      base.cover = coverBase64;
+      base.coverLandscape = coverLandscapeBase64;
       await updateBook({ id: book.id, data: base });
       showToast('Обложка сохранена');
       setCoverChanged(false);
@@ -180,19 +184,22 @@ export default function BookPage({ params }: { params: { id: string } }) {
   ];
   const tabs = isAdmin ? [{ id: 'photo', label: 'Фото' }, ...baseTabs] : baseTabs;
 
-  const displayCover = coverChanged ? coverBase64 : (book.cover || null);
+  // Hero: landscape cover from this page, fallback to portrait cover
+  const heroSrc = coverChanged
+    ? coverLandscapeBase64
+    : (book.coverLandscape || book.cover || null);
 
   return (
     <>
       <div style={{ minHeight: '100vh', background: 'var(--bg)', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
         <div style={{ width: '100%', maxWidth: '480px', position: 'relative' }}>
 
-          {/* Hero — album/landscape image with gradient fade */}
+          {/* Hero — landscape hero banner with gradient fade */}
           <div style={{ width: '100%', position: 'relative', overflow: 'hidden', background: 'linear-gradient(140deg,#0c1f0f,#060e07)' }}>
-            {displayCover ? (
+            {heroSrc ? (
               <div style={{ position: 'relative' }}>
                 <img
-                  src={displayCover}
+                  src={heroSrc}
                   alt={book.title}
                   style={{
                     width: '100%',
@@ -236,7 +243,7 @@ export default function BookPage({ params }: { params: { id: string } }) {
           </div>
 
           {/* Info block */}
-          <div style={{ padding: '0 20px 0', marginTop: displayCover ? '-32px' : '0', position: 'relative', zIndex: 1 }}>
+          <div style={{ padding: '0 20px 0', marginTop: heroSrc ? '-32px' : '0', position: 'relative', zIndex: 1 }}>
             <div style={{ display: 'inline-block', fontFamily: "'Crimson Text', serif", fontSize: '.65rem', letterSpacing: '.2em', textTransform: 'uppercase', padding: '2px 8px', border: '1px solid rgba(200,168,74,.22)', color: 'var(--gold2)', marginBottom: '10px' }}>
               {LL_FULL[book.lang] || book.lang}
             </div>
@@ -279,32 +286,35 @@ export default function BookPage({ params }: { params: { id: string } }) {
           {/* Tab content */}
           <div style={{ padding: '20px', minHeight: '220px' }}>
 
-            {/* PHOTO TAB */}
+            {/* PHOTO TAB — landscape crop saved as coverLandscape */}
             {activeTab === 'photo' && isAdmin && (
               <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                <p style={{ fontFamily: "'Crimson Text', serif", fontSize: '.78rem', color: 'var(--text3)', fontStyle: 'italic', margin: 0 }}>
+                  Альбомная обложка для страницы книги
+                </p>
                 <button
                   type="button"
                   onClick={() => fileInputRef.current?.click()}
                   style={{ padding: '10px', background: 'transparent', border: '1px solid var(--border)', color: 'var(--text2)', fontFamily: "'Crimson Text', serif", fontSize: '.76rem', letterSpacing: '.1em', textTransform: 'uppercase', cursor: 'pointer', textAlign: 'left' }}
                 >
-                  📷 Загрузить новое фото
+                  📷 Загрузить альбомное фото
                 </button>
-                {(coverBase64 || coverOrigSrc) && (
+                {(coverLandscapeBase64 || coverOrigSrc) && (
                   <button
                     type="button"
-                    onClick={() => setCropOrigSrc(coverOrigSrc || coverBase64)}
+                    onClick={() => setCropOrigSrc(coverOrigSrc || coverLandscapeBase64)}
                     style={{ padding: '10px', background: 'transparent', border: '1px solid var(--gold2)', color: 'var(--gold)', fontFamily: "'Crimson Text', serif", fontSize: '.76rem', letterSpacing: '.1em', textTransform: 'uppercase', cursor: 'pointer', textAlign: 'left' }}
                   >
                     ✂ Перекадрировать
                   </button>
                 )}
-                {coverBase64 && (
+                {coverLandscapeBase64 && (
                   <button
                     type="button"
-                    onClick={() => { setCoverBase64(null); setCoverOrigSrc(null); setCoverChanged(true); }}
+                    onClick={() => { setCoverLandscapeBase64(null); setCoverOrigSrc(null); setCoverChanged(true); }}
                     style={{ padding: '10px', background: 'transparent', border: '1px solid rgba(122,53,32,.3)', color: 'rgba(160,80,55,.8)', fontFamily: "'Crimson Text', serif", fontSize: '.76rem', letterSpacing: '.1em', textTransform: 'uppercase', cursor: 'pointer', textAlign: 'left' }}
                   >
-                    ✕ Удалить обложку
+                    ✕ Удалить альбомную обложку
                   </button>
                 )}
                 {coverChanged && (
@@ -516,12 +526,15 @@ export default function BookPage({ params }: { params: { id: string } }) {
         </div>
       </div>
 
+      {/* Cropper locked to landscape for the book page hero */}
       {cropOrigSrc && (
         <Cropper
           imageSrc={cropOrigSrc}
+          defaultOrient="landscape"
+          hideToggle
           onCancel={() => setCropOrigSrc(null)}
           onApply={(b64) => {
-            setCoverBase64(b64);
+            setCoverLandscapeBase64(b64);
             setCoverChanged(true);
             setCropOrigSrc(null);
           }}

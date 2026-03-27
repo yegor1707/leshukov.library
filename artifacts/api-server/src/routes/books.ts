@@ -23,6 +23,7 @@ const createBookSchema = z.object({
   thoughts: z.string().nullable().optional(),
   vocab: z.array(vocabEntrySchema).default([]),
   cover: z.string().nullable().optional(),
+  coverLandscape: z.string().nullable().optional(),
 });
 
 function formatBook(b: any) {
@@ -39,6 +40,7 @@ function formatBook(b: any) {
     thoughts: b.thoughts ?? null,
     vocab: b.vocab ?? [],
     cover: b.cover ?? null,
+    coverLandscape: b.coverLandscape ?? null,
     createdAt: b.createdAt instanceof Date ? b.createdAt.toISOString() : b.createdAt,
   };
 }
@@ -89,6 +91,7 @@ router.post("/", async (req, res) => {
         thoughts: data.thoughts ?? null,
         vocab: data.vocab,
         cover: data.cover ?? null,
+        coverLandscape: data.coverLandscape ?? null,
       })
       .returning();
     res.status(201).json(formatBook(book));
@@ -137,6 +140,7 @@ router.put("/:id", async (req, res) => {
         thoughts: data.thoughts ?? null,
         vocab: data.vocab,
         cover: data.cover ?? null,
+        coverLandscape: data.coverLandscape ?? null,
       })
       .where(eq(booksTable.id, req.params.id))
       .returning();
