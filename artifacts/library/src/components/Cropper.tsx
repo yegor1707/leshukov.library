@@ -161,15 +161,12 @@ export function Cropper({ imageSrc, onApply, onCancel, defaultOrient = 'portrait
         const newZoom = Math.max(1, Math.min(4, pinchRef.current.zoom * ratio));
         const { fw, fh } = getFrameSize(orient);
         const zoomRatio = newZoom / s.userZoom;
-        // Zoom from pinch midpoint relative to frame
-        if (frameRef.current) {
-          const rect = frameRef.current.getBoundingClientRect();
-          const pivotX = pinchRef.current.midX - rect.left;
-          const pivotY = pinchRef.current.midY - rect.top;
-          const newOffX = (s.offX + pivotX) * zoomRatio - pivotX;
-          const newOffY = (s.offY + pivotY) * zoomRatio - pivotY;
-          applyLayout(s.imgNW, s.imgNH, orient, newZoom, newOffX, newOffY);
-        }
+        // Zoom from center of frame (stable, no pull effect)
+        const pivotX = fw / 2;
+        const pivotY = fh / 2;
+        const newOffX = (s.offX + pivotX) * zoomRatio - pivotX;
+        const newOffY = (s.offY + pivotY) * zoomRatio - pivotY;
+        applyLayout(s.imgNW, s.imgNH, orient, newZoom, newOffX, newOffY);
         return;
       }
 

@@ -28,6 +28,8 @@ export function BookFormSheet({ isOpen, onClose, editBook }: BookFormSheetProps)
   const [coverBase64, setCoverBase64] = useState<string | null>(null);
   const [coverOrigSrc, setCoverOrigSrc] = useState<string | null>(null);
   const [cropOrigSrc, setCropOrigSrc] = useState<string | null>(null);
+  const [urlInput, setUrlInput] = useState("");
+  const [urlError, setUrlError] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
@@ -45,10 +47,12 @@ export function BookFormSheet({ isOpen, onClose, editBook }: BookFormSheetProps)
         setVocab(editBook.vocab?.map(v => ({ id: Math.random().toString(), ...v })) || []);
         setCoverBase64(editBook.cover || null);
         setCoverOrigSrc(null);
+        setUrlInput(""); setUrlError(false);
       } else {
         setTitle(""); setAuthor(""); setLang("ru"); setGenre(""); setYear("");
         setRating(0); setSynopsis(""); setQuoteItems([]); setThoughts(""); setVocab([]);
         setCoverBase64(null); setCoverOrigSrc(null);
+        setUrlInput(""); setUrlError(false);
       }
     }
   }, [isOpen, editBook]);
@@ -72,6 +76,30 @@ export function BookFormSheet({ isOpen, onClose, editBook }: BookFormSheetProps)
     } else if (coverBase64) {
       setCropOrigSrc(coverBase64);
     }
+  };
+
+  const handleUrlLoad = () => {
+    const url = urlInput.trim();
+    if (!url) return;
+    setUrlError(false);
+    const img = new Image();
+    img.crossOrigin = "anonymous";
+    img.onload = () => {
+      const canvas = document.createElement("canvas");
+      canvas.width = img.naturalWidth;
+      canvas.height = img.naturalHeight;
+      const ctx = canvas.getContext("2d");
+      if (!ctx) { setUrlError(true); return; }
+      ctx.drawImage(img, 0, 0);
+      try {
+        const dataUrl = canvas.toDataURL("image/jpeg", 0.92);
+        setCoverOrigSrc(dataUrl);
+        setCropOrigSrc(dataUrl);
+        setUrlInput("");
+      } catch { setUrlError(true); }
+    };
+    img.onerror = () => setUrlError(true);
+    img.src = url;
   };
 
   const handleSave = async () => {
@@ -176,6 +204,41 @@ export function BookFormSheet({ isOpen, onClose, editBook }: BookFormSheetProps)
                     После загрузки можно выбрать нужную область и масштаб
                   </p>
                 </div>
+              </div>
+              <div style={{ marginTop: '10px', display: 'flex', gap: '6px', alignItems: 'flex-start' }}>
+                <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                  <input
+                    type="url"
+                    placeholder="Или вставьте ссылку на изображение…"
+                    value={urlInput}
+                    onChange={e => { setUrlInput(e.target.value); setUrlError(false); }}
+                    onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); handleUrlLoad(); } }}
+                    style={{
+                      width: '100%', padding: '9px 10px', background: 'rgba(8,16,10,.8)',
+                      border: `1px solid ${urlError ? 'rgba(160,80,55,.7)' : 'var(--border)'}`,
+                      color: 'var(--text)', fontFamily: "'Crimson Text', serif", fontSize: '.85rem',
+                      outline: 'none', boxSizing: 'border-box',
+                    }}
+                  />
+                  {urlError && (
+                    <span style={{ fontFamily: "'Crimson Text', serif", fontSize: '.7rem', color: 'rgba(160,80,55,.9)', fontStyle: 'italic' }}>
+                      Не удалось загрузить. Попробуйте другую ссылку.
+                    </span>
+                  )}
+                </div>
+                <button
+                  type="button"
+                  onClick={handleUrlLoad}
+                  disabled={!urlInput.trim()}
+                  style={{
+                    padding: '9px 12px', background: 'transparent', border: '1px solid var(--border)',
+                    color: 'var(--text2)', fontFamily: "'Crimson Text', serif", fontSize: '.76rem',
+                    letterSpacing: '.1em', textTransform: 'uppercase', cursor: urlInput.trim() ? 'pointer' : 'default',
+                    opacity: urlInput.trim() ? 1 : 0.4, whiteSpace: 'nowrap', flexShrink: 0,
+                  }}
+                >
+                  Загрузить
+                </button>
               </div>
               <input type="file" ref={fileInputRef} accept="image/*" style={{ display: 'none' }} onChange={handleFileChange} />
             </div>
