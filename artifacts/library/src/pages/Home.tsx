@@ -8,6 +8,52 @@ import { showToast } from "@/components/Toast";
 
 const LL: Record<string, string> = { ru: 'RU', en: 'EN', other: '?' };
 
+function CardTitle({ title }: { title: string }) {
+  const ref = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+
+    const resize = () => {
+      el.style.fontSize = '';
+      const containerW = el.offsetWidth;
+      if (!containerW) return;
+
+      const cs = getComputedStyle(el);
+      const baseSize = parseFloat(cs.fontSize);
+
+      const probe = document.createElement('span');
+      probe.style.cssText = [
+        'position:fixed', 'top:-9999px', 'left:-9999px',
+        'visibility:hidden', 'white-space:nowrap', 'pointer-events:none',
+        `font-family:${cs.fontFamily}`, `font-weight:${cs.fontWeight}`,
+        `font-size:${baseSize}px`, `letter-spacing:${cs.letterSpacing}`,
+      ].join(';');
+      document.body.appendChild(probe);
+
+      let maxWordW = 0;
+      for (const word of title.split(/\s+/).filter(Boolean)) {
+        probe.textContent = word;
+        if (probe.scrollWidth > maxWordW) maxWordW = probe.scrollWidth;
+      }
+      document.body.removeChild(probe);
+
+      if (maxWordW > containerW) {
+        const scaled = baseSize * (containerW / maxWordW) * 0.96;
+        el.style.fontSize = `${Math.max(scaled, 9)}px`;
+      }
+    };
+
+    resize();
+    const ro = new ResizeObserver(resize);
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, [title]);
+
+  return <div ref={ref} className="ci-title">{title}</div>;
+}
+
 function PinModal({ onClose, login, isLoading, error, setError }: {
   onClose: () => void;
   login: (p: string) => Promise<boolean>;
@@ -210,7 +256,7 @@ export default function Home() {
                 <div className="card-lang-badge">{LL[b.lang] || b.lang}</div>
               </div>
               <div className="card-info">
-                <div className="ci-title">{b.title}</div>
+                <CardTitle title={b.title} />
                 <div className="ci-auth">{b.author}</div>
                 <div className="ci-meta">
                   {b.genre && <div className="ci-genre">{b.genre}</div>}
