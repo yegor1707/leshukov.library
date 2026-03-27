@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useLocation } from "wouter";
 import { Book } from "@workspace/api-client-react";
 import { useBooksData } from "@/hooks/use-books";
@@ -8,65 +8,125 @@ import { showToast } from "@/components/Toast";
 
 const LL: Record<string, string> = { ru: 'RU', en: 'EN', other: '?' };
 
-function AdminLoginModal({
-  onClose,
-  login,
-  isLoading,
-  error,
-  setError,
-}: {
+function PinModal({ onClose, login, isLoading, error, setError }: {
   onClose: () => void;
   login: (p: string) => Promise<boolean>;
   isLoading: boolean;
   error: string | null;
   setError: (e: string | null) => void;
 }) {
-  const [pw, setPw] = useState("");
+  const [pin, setPin] = useState("");
+  const [shake, setShake] = useState(false);
+  const inputRef = useRef<HTMLInputElement>(null);
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    const ok = await login(pw);
-    if (ok) {
-      showToast("Режим редактирования включён");
-      onClose();
+  useEffect(() => {
+    setTimeout(() => inputRef.current?.focus(), 80);
+  }, []);
+
+  useEffect(() => {
+    if (pin.length === 4) {
+      login(pin).then(ok => {
+        if (ok) {
+          showToast("Режим редактирования включён");
+          onClose();
+        } else {
+          setShake(true);
+          setTimeout(() => { setShake(false); setPin(""); setError(null); }, 550);
+        }
+      });
     }
+  }, [pin]);
+
+  const handleKey = (digit: string) => {
+    if (isLoading || pin.length >= 4) return;
+    setError(null);
+    setPin(p => p + digit);
+  };
+
+  const handleDel = () => {
+    if (isLoading) return;
+    setPin(p => p.slice(0, -1));
+    setError(null);
   };
 
   return (
-    <div className="overlay open" onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}>
-      <div className="sheet">
-        <div className="sheet-handle"></div>
-        <div className="sh">
-          <div className="sh-lbl">Управление библиотекой</div>
-          <h2>Режим редактирования</h2>
-          <button className="mc" onClick={onClose}>✕</button>
-        </div>
-        <div className="fb">
-          <p style={{ fontFamily: "'Crimson Text', serif", color: "var(--text2)", fontSize: ".95rem", marginBottom: "16px", lineHeight: 1.6 }}>
-            Введите пароль, чтобы добавлять и редактировать книги.
-          </p>
-          <form onSubmit={handleSubmit}>
-            <div className="field">
-              <label>Пароль</label>
-              <input
-                type="password"
-                value={pw}
-                onChange={e => { setPw(e.target.value); setError(null); }}
-                placeholder="Введите пароль…"
-                autoFocus
-              />
-              {error && (
-                <p style={{ color: "#b04030", fontFamily: "'Crimson Text', serif", fontSize: ".85rem", marginTop: "5px" }}>
-                  {error}
-                </p>
-              )}
-            </div>
-            <button className="sbtn" type="submit" disabled={isLoading || !pw.trim()}>
-              {isLoading ? "Проверка…" : "Войти"}
-            </button>
-          </form>
+    <div className="overlay open" onClick={e => { if (e.target === e.currentTarget) onClose(); }}>
+      <div className="sheet" style={{ borderRadius: '18px', maxHeight: '420px' }}>
+        <div className="sheet-handle" />
+        <div style={{ padding: '22px 20px 28px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0' }}>
+          <div style={{ fontFamily: "'IM Fell English', serif", fontSize: '.78rem', color: 'var(--gold2)', fontStyle: 'italic', marginBottom: '14px', letterSpacing: '.05em' }}>
+            Введите код доступа
+          </div>
+
+          {/* 4 dots */}
+          <div style={{ display: 'flex', gap: '14px', marginBottom: '24px' }}>
+            {[0, 1, 2, 3].map(i => (
+              <div key={i} style={{
+                width: '14px', height: '14px', borderRadius: '50%',
+                border: '1.5px solid var(--gold2)',
+                background: i < pin.length ? 'var(--gold)' : 'transparent',
+                transition: 'background .15s',
+                animation: shake ? `pinShake .45s ease` : 'none',
+              }} />
+            ))}
+          </div>
+
+          {/* Hidden real input for mobile keyboard */}
+          <input
+            ref={inputRef}
+            type="tel"
+            inputMode="numeric"
+            maxLength={4}
+            value={pin}
+            onChange={e => {
+              const v = e.target.value.replace(/\D/g, '').slice(0, 4);
+              setPin(v);
+              setError(null);
+            }}
+            style={{ position: 'absolute', opacity: 0, width: 0, height: 0, pointerEvents: 'none' }}
+            readOnly={isLoading}
+          />
+
+          {/* Numpad */}
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '10px', width: '100%', maxWidth: '240px' }}>
+            {['1','2','3','4','5','6','7','8','9','','0','⌫'].map((d, i) => (
+              d === '' ? <div key={i} /> :
+              d === '⌫' ? (
+                <button key={i} onClick={handleDel} style={{
+                  padding: '16px 0', background: 'transparent',
+                  border: '1px solid var(--border)', color: 'var(--text2)',
+                  fontFamily: 'system-ui', fontSize: '1.1rem', cursor: 'pointer',
+                  borderRadius: '4px', transition: 'all .15s',
+                }}>⌫</button>
+              ) : (
+                <button key={i} onClick={() => handleKey(d)} disabled={isLoading || pin.length >= 4} style={{
+                  padding: '16px 0', background: 'transparent',
+                  border: '1px solid var(--border)', color: 'var(--ivory)',
+                  fontFamily: "'Playfair Display', serif", fontSize: '1.2rem',
+                  fontWeight: 700, cursor: 'pointer', borderRadius: '4px',
+                  transition: 'all .15s', opacity: isLoading ? 0.5 : 1,
+                }}>{d}</button>
+              )
+            ))}
+          </div>
+
+          {error && (
+            <p style={{ marginTop: '14px', color: 'rgba(180,70,50,.9)', fontFamily: "'Crimson Text', serif", fontSize: '.85rem', fontStyle: 'italic' }}>
+              Неверный код
+            </p>
+          )}
         </div>
       </div>
+
+      <style>{`
+        @keyframes pinShake {
+          0%,100%{transform:translateX(0)}
+          20%{transform:translateX(-6px)}
+          40%{transform:translateX(6px)}
+          60%{transform:translateX(-4px)}
+          80%{transform:translateX(4px)}
+        }
+      `}</style>
     </div>
   );
 }
@@ -79,14 +139,9 @@ export default function Home() {
 
   const [isAddOpen, setIsAddOpen] = useState(false);
   const [editingBook] = useState<Book | null>(null);
-  const [showLoginModal, setShowLoginModal] = useState(false);
+  const [showPinModal, setShowPinModal] = useState(false);
 
   const { isAdmin, login, logout, isLoading: isLoginLoading, error: loginError, setError: setLoginError } = useAdmin();
-
-  const handleOpenAdd = () => {
-    if (!isAdmin) { setShowLoginModal(true); return; }
-    setIsAddOpen(true);
-  };
 
   const handleLogout = () => {
     logout();
@@ -119,25 +174,24 @@ export default function Home() {
 
         {isAdmin ? (
           <div style={{ display: "flex", gap: "8px" }}>
-            <button className="add-btn" style={{ flex: 1 }} onClick={handleOpenAdd}>
+            <button className="add-btn" style={{ flex: 1 }} onClick={() => setIsAddOpen(true)}>
               <svg width="12" height="12" fill="none" stroke="currentColor" strokeWidth="2.2" viewBox="0 0 24 24">
                 <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
               </svg>
               Добавить книгу
             </button>
-            <button className="add-btn" style={{ flex: "none", padding: "12px 14px", opacity: 0.6 }} onClick={handleLogout} title="Выйти из режима редактирования">
+            <button className="add-btn" style={{ flex: "none", padding: "12px 14px", opacity: 0.55 }} onClick={handleLogout} title="Выйти">
               🔓
             </button>
           </div>
         ) : (
-          <div style={{ display: "flex", gap: "8px" }}>
-            <div className="add-btn" style={{ flex: 1, opacity: 0.35, cursor: "default", justifyContent: "center" }}>
-              Библиотека Лешуковых
-            </div>
-            <button className="add-btn" style={{ flex: "none", padding: "12px 14px" }} onClick={() => setShowLoginModal(true)} title="Управление">
-              🔒
-            </button>
-          </div>
+          <button
+            className="add-btn"
+            style={{ width: '100%', opacity: 0.38, cursor: 'pointer', letterSpacing: '.35em', fontSize: '.65rem', color: 'var(--text3)', borderColor: 'var(--border)' }}
+            onClick={() => setShowPinModal(true)}
+          >
+            · · · ·
+          </button>
         )}
       </header>
 
@@ -207,9 +261,9 @@ export default function Home() {
         editBook={editingBook}
       />
 
-      {showLoginModal && (
-        <AdminLoginModal
-          onClose={() => setShowLoginModal(false)}
+      {showPinModal && (
+        <PinModal
+          onClose={() => setShowPinModal(false)}
           login={login}
           isLoading={isLoginLoading}
           error={loginError}
