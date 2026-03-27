@@ -115,8 +115,12 @@ export default function BookPage({ params }: { params: { id: string } }) {
     if (tab === 'synopsis') setEditSynopsis(book.synopsis || '');
     if (tab === 'vocab') setEditVocab(book.vocab?.map(v => ({ id: Math.random().toString(), ...v })) || []);
     if (tab === 'quotes') {
-      const lines = (book.quotes || '').split('\n\n').filter(l => l.trim());
-      setEditQuotes(lines.map(l => ({ id: Math.random().toString(), text: l })));
+      const raw = book.quotes || '';
+      const sep = '\u001F';
+      const lines = raw.includes(sep)
+        ? raw.split(sep).filter(l => l.trim())
+        : raw.split('\n\n').filter(l => l.trim());
+      setEditQuotes(lines.length ? lines.map(l => ({ id: Math.random().toString(), text: l })) : [{ id: Math.random().toString(), text: '' }]);
     }
   };
 
@@ -144,7 +148,7 @@ export default function BookPage({ params }: { params: { id: string } }) {
       const base = buildBase();
       if (tab === 'synopsis') base.synopsis = editSynopsis.trim();
       if (tab === 'vocab') base.vocab = editVocab.filter(v => v.word.trim()).map(v => ({ word: v.word.trim(), meaning: v.meaning.trim() }));
-      if (tab === 'quotes') base.quotes = editQuotes.filter(q => q.text.trim()).map(q => q.text.trim()).join('\n\n');
+      if (tab === 'quotes') base.quotes = editQuotes.filter(q => q.text.trim()).map(q => q.text.trim()).join('\u001F');
       await updateBook({ id: book.id, data: base });
       showToast('Сохранено');
       setEditingTab(null);
@@ -423,7 +427,7 @@ export default function BookPage({ params }: { params: { id: string } }) {
                   <>
                     {book.quotes?.trim() ? (
                       <div className="qwrap">
-                        {book.quotes.split('\n\n').filter(l => l.trim()).map((l, i) => (
+                        {(book.quotes.includes('\u001F') ? book.quotes.split('\u001F') : book.quotes.split('\n\n')).filter(l => l.trim()).map((l, i) => (
                           <div key={i} className="qitem" style={{ whiteSpace: 'pre-line' }}>{l}</div>
                         ))}
                       </div>
