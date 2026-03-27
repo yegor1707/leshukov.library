@@ -85,7 +85,7 @@ h1 em{font-style:italic;color:var(--gold);}
 .stats strong{color:var(--ivory2);font-style:normal;}
 
 .grid-books{position:relative;z-index:1;padding:14px 14px 80px;display:grid;grid-template-columns:1fr 1fr;gap:12px;}
-.book-card{background:var(--card);border:1px solid var(--bord2);cursor:pointer;overflow:hidden;transition:border-color .2s;animation:fu .32s ease both;border-radius:4px;min-width:0;}
+.book-card{background:var(--card);border:1px solid var(--bord2);cursor:pointer;overflow:hidden;transition:border-color .2s;animation:fu .32s ease both;border-radius:4px;min-width:0;display:flex;flex-direction:column;}
 @keyframes fu{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}
 .book-card:active{opacity:.75;}
 .book-card:hover{border-color:rgba(200,168,74,.25);}
@@ -97,7 +97,7 @@ h1 em{font-style:italic;color:var(--gold);}
 .cp-title{font-family:'Playfair Display',serif;font-size:.72rem;font-weight:700;color:var(--ivory2);opacity:.45;text-align:center;line-height:1.3;position:relative;}
 .cp-auth{font-family:'Crimson Text',serif;font-size:.62rem;color:var(--text3);text-align:center;position:relative;}
 .card-lang-badge{position:absolute;top:6px;left:6px;font-family:'Crimson Text',serif;font-size:.58rem;letter-spacing:.14em;text-transform:uppercase;padding:2px 5px;background:rgba(13,28,17,.82);border:1px solid rgba(200,168,74,.2);color:var(--gold2);backdrop-filter:blur(4px);}
-.card-info{padding:9px 10px 10px;display:flex;flex-direction:column;}
+.card-info{padding:9px 10px 10px;display:flex;flex-direction:column;flex:1;}
 .ci-title{font-family:'Playfair Display',serif;font-size:.98rem;font-weight:700;color:var(--ivory);line-height:1.25;display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden;margin-bottom:3px;word-break:normal;overflow-wrap:normal;}
 .ci-auth{font-family:'Crimson Text',serif;font-size:.68rem;letter-spacing:.08em;color:var(--text2);margin-bottom:3px;overflow:hidden;white-space:nowrap;text-overflow:ellipsis;}
 .ci-meta{margin-top:auto;padding-top:4px;display:flex;align-items:center;gap:5px;}
