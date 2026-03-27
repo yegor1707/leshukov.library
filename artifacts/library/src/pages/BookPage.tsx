@@ -1,10 +1,9 @@
-import { useState, useRef, useEffect } from "react";
+import { useState, useEffect } from "react";
 import { useLocation } from "wouter";
 import { useGetBook, useListNotes, useAddNote } from "@workspace/api-client-react";
 import { useBookMutations, useThoughts, useThoughtMutations } from "@/hooks/use-books";
 import { useAdmin } from "@/hooks/use-admin";
 import { showToast } from "@/components/Toast";
-import { Cropper } from "@/components/Cropper";
 import { BookFormSheet } from "@/components/BookFormSheet";
 
 const LL_FULL: Record<string, string> = {
@@ -36,26 +35,12 @@ export default function BookPage({ params }: { params: { id: string } }) {
   const [editVocab, setEditVocab] = useState<{ id: string; word: string; meaning: string }[]>([]);
   const [editQuotes, setEditQuotes] = useState<{ id: string; text: string }[]>([]);
 
-  // coverLandscape is the hero image (landscape crop) stored separately from the portrait cover
-  const [coverLandscapeBase64, setCoverLandscapeBase64] = useState<string | null>(null);
-  const [coverOrigSrc, setCoverOrigSrc] = useState<string | null>(null);
-  const [cropOrigSrc, setCropOrigSrc] = useState<string | null>(null);
-  const [coverChanged, setCoverChanged] = useState(false);
-  const fileInputRef = useRef<HTMLInputElement>(null);
-
   const { data: book, isLoading, error } = useGetBook(params.id);
   const { data: notes = [] } = useListNotes(params.id);
   const { data: thoughtItems = [] } = useThoughts(params.id);
   const { deleteBook, isDeleting, updateBook, isUpdating } = useBookMutations();
   const addNoteMutation = useAddNote();
   const { addThought, isAdding: isAddingThought, removeThought } = useThoughtMutations(params.id);
-
-  useEffect(() => {
-    if (book) {
-      setCoverLandscapeBase64(book.coverLandscape ?? null);
-      setCoverChanged(false);
-    }
-  }, [book]);
 
   const handleDelete = async () => {
     if (!window.confirm('Удалить эту книгу?')) return;
@@ -134,33 +119,6 @@ export default function BookPage({ params }: { params: { id: string } }) {
     }
   };
 
-  // Save only the landscape cover (hero), keep portrait cover untouched
-  const saveCover = async () => {
-    if (!book) return;
-    try {
-      const base = buildBase();
-      base.coverLandscape = coverLandscapeBase64;
-      await updateBook({ id: book.id, data: base });
-      showToast('Обложка сохранена');
-      setCoverChanged(false);
-    } catch {
-      showToast('Ошибка сохранения');
-    }
-  };
-
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    const reader = new FileReader();
-    reader.onload = (ev) => {
-      const src = ev.target?.result as string;
-      setCoverOrigSrc(src);
-      setCropOrigSrc(src);
-    };
-    reader.readAsDataURL(file);
-    if (fileInputRef.current) fileInputRef.current.value = '';
-  };
-
   const addVRow = () => setEditVocab([...editVocab, { id: Math.random().toString(), word: "", meaning: "" }]);
   const removeVRow = (id: string) => setEditVocab(editVocab.filter(v => v.id !== id));
   const updateV = (id: string, field: 'word' | 'meaning', val: string) =>
@@ -195,12 +153,9 @@ export default function BookPage({ params }: { params: { id: string } }) {
     { id: 'thoughts', label: 'Мысли' },
     { id: 'notes', label: 'Заметки' },
   ];
-  const tabs = isAdmin ? [{ id: 'photo', label: 'Фото' }, ...baseTabs] : baseTabs;
+  const tabs = baseTabs;
 
-  // Hero: landscape cover from this page, fallback to portrait cover
-  const heroSrc = coverChanged
-    ? coverLandscapeBase64
-    : (book.coverLandscape || book.cover || null);
+  const heroSrc = book.coverLandscape || book.cover || null;
 
   return (
     <>
@@ -263,7 +218,7 @@ export default function BookPage({ params }: { params: { id: string } }) {
             <h1 style={{ fontFamily: "'Playfair Display', serif", fontSize: 'clamp(1.5rem, 5vw, 2.2rem)', color: 'var(--ivory)', fontWeight: 900, lineHeight: 1.1, marginBottom: '6px' }}>
               {book.title}
             </h1>
-            <p style={{ fontFamily: "'Crimson Text', serif", fontSize: '1rem', color: 'var(--text2)', letterSpacing: '.06em', marginBottom: '12px' }}>
+            <p style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: '1.1rem', fontStyle: 'italic', fontWeight: 600, color: 'var(--text2)', letterSpacing: '.04em', marginBottom: '12px' }}>
               {book.author}
             </p>
             <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap', marginBottom: '20px' }}>
@@ -305,46 +260,6 @@ export default function BookPage({ params }: { params: { id: string } }) {
 
           {/* Tab content */}
           <div style={{ padding: '20px', minHeight: '220px' }}>
-
-            {/* PHOTO TAB — landscape crop saved as coverLandscape */}
-            {activeTab === 'photo' && isAdmin && (
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                <p style={{ fontFamily: "'Crimson Text', serif", fontSize: '.78rem', color: 'var(--text3)', fontStyle: 'italic', margin: 0 }}>
-                  Альбомная обложка для страницы книги
-                </p>
-                <button
-                  type="button"
-                  onClick={() => fileInputRef.current?.click()}
-                  style={{ padding: '10px', background: 'transparent', border: '1px solid var(--border)', color: 'var(--text2)', fontFamily: "'Crimson Text', serif", fontSize: '.76rem', letterSpacing: '.1em', textTransform: 'uppercase', cursor: 'pointer', textAlign: 'left' }}
-                >
-                  📷 Загрузить альбомное фото
-                </button>
-                {(coverLandscapeBase64 || coverOrigSrc) && (
-                  <button
-                    type="button"
-                    onClick={() => setCropOrigSrc(coverOrigSrc || coverLandscapeBase64)}
-                    style={{ padding: '10px', background: 'transparent', border: '1px solid var(--gold2)', color: 'var(--gold)', fontFamily: "'Crimson Text', serif", fontSize: '.76rem', letterSpacing: '.1em', textTransform: 'uppercase', cursor: 'pointer', textAlign: 'left' }}
-                  >
-                    ✂ Перекадрировать
-                  </button>
-                )}
-                {coverLandscapeBase64 && (
-                  <button
-                    type="button"
-                    onClick={() => { setCoverLandscapeBase64(null); setCoverOrigSrc(null); setCoverChanged(true); }}
-                    style={{ padding: '10px', background: 'transparent', border: '1px solid rgba(122,53,32,.3)', color: 'rgba(160,80,55,.8)', fontFamily: "'Crimson Text', serif", fontSize: '.76rem', letterSpacing: '.1em', textTransform: 'uppercase', cursor: 'pointer', textAlign: 'left' }}
-                  >
-                    ✕ Удалить альбомную обложку
-                  </button>
-                )}
-                {coverChanged && (
-                  <button className="sbtn" style={{ margin: 0, marginTop: '4px' }} onClick={saveCover} disabled={isUpdating}>
-                    {isUpdating ? 'Сохранение…' : 'Сохранить обложку'}
-                  </button>
-                )}
-                <input type="file" ref={fileInputRef} accept="image/*" style={{ display: 'none' }} onChange={handleFileChange} />
-              </div>
-            )}
 
             {/* SYNOPSIS TAB */}
             {activeTab === 'synopsis' && (
@@ -550,21 +465,6 @@ export default function BookPage({ params }: { params: { id: string } }) {
           <div style={{ height: '60px' }} />
         </div>
       </div>
-
-      {/* Cropper locked to landscape for the book page hero */}
-      {cropOrigSrc && (
-        <Cropper
-          imageSrc={cropOrigSrc}
-          defaultOrient="landscape"
-          hideToggle
-          onCancel={() => setCropOrigSrc(null)}
-          onApply={(b64) => {
-            setCoverLandscapeBase64(b64);
-            setCoverChanged(true);
-            setCropOrigSrc(null);
-          }}
-        />
-      )}
 
       {/* Edit book metadata form */}
       <BookFormSheet
