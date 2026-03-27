@@ -263,7 +263,7 @@ export default function BookPage({ params }: { params: { id: string } }) {
             <h1 style={{ fontFamily: "'Playfair Display', serif", fontSize: 'clamp(1.5rem, 5vw, 2.2rem)', color: 'var(--ivory)', fontWeight: 900, lineHeight: 1.1, marginBottom: '6px' }}>
               {book.title}
             </h1>
-            <p style={{ fontFamily: "'IM Fell English', serif", fontSize: '1rem', color: 'var(--text2)', fontStyle: 'italic', marginBottom: '12px' }}>
+            <p style={{ fontFamily: "'Crimson Text', serif", fontSize: '1rem', color: 'var(--text2)', letterSpacing: '.06em', marginBottom: '12px' }}>
               {book.author}
             </p>
             <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap', marginBottom: '20px' }}>
@@ -482,38 +482,43 @@ export default function BookPage({ params }: { params: { id: string } }) {
 
             {/* THOUGHTS TAB */}
             {activeTab === 'thoughts' && (
-              <>
-                {editingTab === 'thoughts' ? (
-                  <div>
-                    <textarea
-                      value={editThoughts}
-                      onChange={e => setEditThoughts(e.target.value)}
-                      placeholder="Впечатления, размышления…"
-                      className="sn-area"
-                      style={{ minHeight: '130px' }}
-                    />
-                    <div style={{ display: 'flex', gap: '8px', marginTop: '8px' }}>
-                      <button className="vedit" onClick={cancelEdit}>Отмена</button>
-                      <button className="sbtn" style={{ margin: 0 }} onClick={() => saveTab('thoughts')} disabled={isUpdating}>
-                        {isUpdating ? 'Сохранение…' : 'Сохранить'}
-                      </button>
-                    </div>
-                  </div>
-                ) : (
+              <div>
+                {isAdmin && (
                   <>
-                    {book.thoughts?.trim() ? (
-                      <div className="th-body">{book.thoughts}</div>
-                    ) : (
-                      <div className="sec-empty">Мысли не добавлены</div>
-                    )}
-                    {isAdmin && (
-                      <button className="vedit" style={{ marginTop: '12px', width: '100%' }} onClick={() => startEdit('thoughts')}>
-                        ✎ Редактировать
-                      </button>
-                    )}
+                    <textarea
+                      className="sn-area"
+                      placeholder="Добавить мысль…"
+                      value={thoughtText}
+                      onChange={e => setThoughtText(e.target.value)}
+                    />
+                    <button className="sn-save" onClick={handleSaveThought} disabled={isAddingThought}>
+                      {isAddingThought ? 'Сохранение…' : 'Сохранить мысль'}
+                    </button>
                   </>
                 )}
-              </>
+                <div className="sn-list" style={{ marginTop: '14px' }}>
+                  {thoughtItems.length > 0 ? thoughtItems.map((t: { id: string; text: string; createdAt: string }) => (
+                    <div key={t.id} className="sni" style={{ position: 'relative' }}>
+                      <div className="snm">{new Date(t.createdAt).toLocaleDateString('ru-RU', { day: 'numeric', month: 'long', year: 'numeric' })}</div>
+                      <div className="snt">{t.text}</div>
+                      {isAdmin && (
+                        <button
+                          onClick={() => removeThought(t.id)}
+                          style={{
+                            position: 'absolute', top: '8px', right: '8px',
+                            background: 'transparent', border: 'none',
+                            color: 'rgba(160,80,55,.6)', cursor: 'pointer',
+                            fontFamily: "'Crimson Text', serif", fontSize: '.75rem',
+                            padding: '2px 4px', lineHeight: 1,
+                          }}
+                        >✕</button>
+                      )}
+                    </div>
+                  )) : (
+                    <div className="sec-empty" style={{ paddingTop: '10px' }}>Мыслей пока нет</div>
+                  )}
+                </div>
+              </div>
             )}
 
             {/* NOTES TAB */}

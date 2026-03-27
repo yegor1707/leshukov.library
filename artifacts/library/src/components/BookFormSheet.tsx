@@ -4,6 +4,8 @@ import { useBookMutations } from "@/hooks/use-books";
 import { showToast } from "./Toast";
 import { Cropper } from "./Cropper";
 
+const GENRES = ["", "Классика", "Роман", "Поэзия", "Философия", "История", "Биография", "Наука", "Детектив", "Фантастика", "Другое"];
+
 interface BookFormSheetProps {
   isOpen: boolean;
   onClose: () => void;
@@ -19,18 +21,26 @@ export function BookFormSheet({ isOpen, onClose, editBook }: BookFormSheetProps)
   const [author, setAuthor] = useState("");
   const [lang, setLang] = useState("ru");
   const [genre, setGenre] = useState("");
+  const [customGenre, setCustomGenre] = useState("");
   const [year, setYear] = useState("");
   const [rating, setRating] = useState(0);
   const [synopsis, setSynopsis] = useState("");
-  const [quoteItems, setQuoteItems] = useState<{ id: string; text: string }[]>([]);
-  const [thoughts, setThoughts] = useState("");
-  const [vocab, setVocab] = useState<{id: string, word: string, meaning: string}[]>([]);
+
   const [coverBase64, setCoverBase64] = useState<string | null>(null);
   const [coverOrigSrc, setCoverOrigSrc] = useState<string | null>(null);
+  const [coverUrlInput, setCoverUrlInput] = useState("");
+  const [coverUrlError, setCoverUrlError] = useState(false);
+
+  const [coverLandscapeBase64, setCoverLandscapeBase64] = useState<string | null>(null);
+  const [coverLandscapeOrigSrc, setCoverLandscapeOrigSrc] = useState<string | null>(null);
+  const [landscapeUrlInput, setLandscapeUrlInput] = useState("");
+  const [landscapeUrlError, setLandscapeUrlError] = useState(false);
+
   const [cropOrigSrc, setCropOrigSrc] = useState<string | null>(null);
-  const [urlInput, setUrlInput] = useState("");
-  const [urlError, setUrlError] = useState(false);
+  const [cropMode, setCropMode] = useState<'portrait' | 'landscape'>('portrait');
+
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const landscapeFileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     if (isOpen) {
@@ -38,50 +48,74 @@ export function BookFormSheet({ isOpen, onClose, editBook }: BookFormSheetProps)
         setTitle(editBook.title || "");
         setAuthor(editBook.author || "");
         setLang(editBook.lang || "ru");
-        setGenre(editBook.genre || "");
+        setSynopsis(editBook.synopsis || "");
         setYear(editBook.year?.toString() || "");
         setRating(editBook.rating || 0);
-        setSynopsis(editBook.synopsis || "");
-        setQuoteItems((editBook.quotes || "").split('\n').filter(l => l.trim()).map(l => ({ id: Math.random().toString(), text: l })));
-        setThoughts(editBook.thoughts || "");
-        setVocab(editBook.vocab?.map(v => ({ id: Math.random().toString(), ...v })) || []);
         setCoverBase64(editBook.cover || null);
         setCoverOrigSrc(null);
-        setUrlInput(""); setUrlError(false);
+        setCoverUrlInput(""); setCoverUrlError(false);
+        setCoverLandscapeBase64(editBook.coverLandscape ?? null);
+        setCoverLandscapeOrigSrc(null);
+        setLandscapeUrlInput(""); setLandscapeUrlError(false);
+        setCropOrigSrc(null);
+
+        const g = editBook.genre || "";
+        if (GENRES.includes(g) || g === "") {
+          setGenre(g);
+          setCustomGenre("");
+        } else {
+          setGenre("Другое");
+          setCustomGenre(g);
+        }
       } else {
-        setTitle(""); setAuthor(""); setLang("ru"); setGenre(""); setYear("");
-        setRating(0); setSynopsis(""); setQuoteItems([]); setThoughts(""); setVocab([]);
-        setCoverBase64(null); setCoverOrigSrc(null);
-        setUrlInput(""); setUrlError(false);
+        setTitle(""); setAuthor(""); setLang("ru"); setGenre(""); setCustomGenre(""); setYear("");
+        setRating(0); setSynopsis("");
+        setCoverBase64(null); setCoverOrigSrc(null); setCoverUrlInput(""); setCoverUrlError(false);
+        setCoverLandscapeBase64(null); setCoverLandscapeOrigSrc(null); setLandscapeUrlInput(""); setLandscapeUrlError(false);
+        setCropOrigSrc(null);
       }
     }
   }, [isOpen, editBook]);
 
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleCoverFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
     const reader = new FileReader();
     reader.onload = (ev) => {
       const src = ev.target?.result as string;
       setCoverOrigSrc(src);
+      setCropMode('portrait');
       setCropOrigSrc(src);
     };
     reader.readAsDataURL(file);
     if (fileInputRef.current) fileInputRef.current.value = '';
   };
 
-  const handleReCrop = () => {
-    if (coverOrigSrc) {
-      setCropOrigSrc(coverOrigSrc);
-    } else if (coverBase64) {
-      setCropOrigSrc(coverBase64);
-    }
+  const handleLandscapeFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = (ev) => {
+      const src = ev.target?.result as string;
+      setCoverLandscapeOrigSrc(src);
+      setCropMode('landscape');
+      setCropOrigSrc(src);
+    };
+    reader.readAsDataURL(file);
+    if (landscapeFileInputRef.current) landscapeFileInputRef.current.value = '';
   };
 
-  const handleUrlLoad = () => {
-    const url = urlInput.trim();
-    if (!url) return;
-    setUrlError(false);
+  const handleCoverReCrop = () => {
+    const src = coverOrigSrc || coverBase64;
+    if (src) { setCropMode('portrait'); setCropOrigSrc(src); }
+  };
+
+  const handleLandscapeReCrop = () => {
+    const src = coverLandscapeOrigSrc || coverLandscapeBase64;
+    if (src) { setCropMode('landscape'); setCropOrigSrc(src); }
+  };
+
+  const loadImageFromUrl = (url: string, onSuccess: (dataUrl: string) => void, onError: () => void) => {
     const img = new Image();
     img.crossOrigin = "anonymous";
     img.onload = () => {
@@ -89,42 +123,77 @@ export function BookFormSheet({ isOpen, onClose, editBook }: BookFormSheetProps)
       canvas.width = img.naturalWidth;
       canvas.height = img.naturalHeight;
       const ctx = canvas.getContext("2d");
-      if (!ctx) { setUrlError(true); return; }
+      if (!ctx) { onError(); return; }
       ctx.drawImage(img, 0, 0);
-      try {
-        const dataUrl = canvas.toDataURL("image/jpeg", 0.92);
-        setCoverOrigSrc(dataUrl);
-        setCropOrigSrc(dataUrl);
-        setUrlInput("");
-      } catch { setUrlError(true); }
+      try { onSuccess(canvas.toDataURL("image/jpeg", 0.92)); } catch { onError(); }
     };
-    img.onerror = () => setUrlError(true);
+    img.onerror = onError;
     img.src = url;
+  };
+
+  const handleCoverUrlLoad = () => {
+    const url = coverUrlInput.trim();
+    if (!url) return;
+    setCoverUrlError(false);
+    loadImageFromUrl(url, (dataUrl) => {
+      setCoverOrigSrc(dataUrl);
+      setCropMode('portrait');
+      setCropOrigSrc(dataUrl);
+      setCoverUrlInput("");
+    }, () => setCoverUrlError(true));
+  };
+
+  const handleLandscapeUrlLoad = () => {
+    const url = landscapeUrlInput.trim();
+    if (!url) return;
+    setLandscapeUrlError(false);
+    loadImageFromUrl(url, (dataUrl) => {
+      setCoverLandscapeOrigSrc(dataUrl);
+      setCropMode('landscape');
+      setCropOrigSrc(dataUrl);
+      setLandscapeUrlInput("");
+    }, () => setLandscapeUrlError(true));
   };
 
   const handleSave = async () => {
     if (!title.trim() || !author.trim()) { showToast("Введите название и автора"); return; }
+    const finalGenre = genre === 'Другое' ? customGenre.trim() : genre;
     const payload = {
       data: {
-        title: title.trim(), author: author.trim(), lang, genre,
+        title: title.trim(),
+        author: author.trim(),
+        lang,
+        genre: finalGenre,
         year: year ? parseInt(year) : null,
         rating: rating > 0 ? rating : null,
-        synopsis: synopsis.trim(), quotes: quoteItems.filter(q => q.text.trim()).map(q => q.text.trim()).join('\n'), thoughts: thoughts.trim(),
-        vocab: vocab.filter(v => v.word.trim()).map(v => ({ word: v.word.trim(), meaning: v.meaning.trim() })),
-        cover: coverBase64
+        synopsis: synopsis.trim(),
+        quotes: isEdit ? (editBook!.quotes || '') : '',
+        thoughts: isEdit ? (editBook!.thoughts || '') : '',
+        vocab: isEdit ? (editBook!.vocab || []) : [],
+        cover: coverBase64,
+        coverLandscape: coverLandscapeBase64,
       }
     };
     try {
-      if (isEdit) { await updateBook({ id: editBook.id, ...payload }); showToast("Книга обновлена"); }
+      if (isEdit) { await updateBook({ id: editBook!.id, ...payload }); showToast("Книга обновлена"); }
       else { await createBook(payload); showToast("Книга добавлена"); }
       onClose();
     } catch { showToast("Ошибка сохранения"); }
   };
 
-  const addVRow = () => setVocab([...vocab, { id: Math.random().toString(), word: "", meaning: "" }]);
-  const removeVRow = (id: string) => setVocab(vocab.filter(v => v.id !== id));
-  const updateV = (id: string, field: 'word'|'meaning', val: string) =>
-    setVocab(vocab.map(v => v.id === id ? { ...v, [field]: val } : v));
+  const urlInputStyle: React.CSSProperties = {
+    width: '100%', padding: '9px 10px', background: 'rgba(8,16,10,.8)',
+    border: '1px solid var(--border)', color: 'var(--text)',
+    fontFamily: "'Crimson Text', serif", fontSize: '.85rem',
+    outline: 'none', boxSizing: 'border-box', borderRadius: 0,
+  };
+
+  const urlBtnStyle: React.CSSProperties = {
+    padding: '9px 12px', background: 'transparent', border: '1px solid var(--border)',
+    color: 'var(--text2)', fontFamily: "'Crimson Text', serif", fontSize: '.76rem',
+    letterSpacing: '.1em', textTransform: 'uppercase', cursor: 'pointer',
+    whiteSpace: 'nowrap', flexShrink: 0, borderRadius: 0,
+  };
 
   return (
     <>
@@ -141,9 +210,9 @@ export function BookFormSheet({ isOpen, onClose, editBook }: BookFormSheetProps)
           </div>
           <div className="fb">
 
-            {/* Cover upload — portrait ratio, re-crop support */}
+            {/* Portrait cover — card cover */}
             <div className="field">
-              <label>Обложка книги</label>
+              <label>Обложка карточки (портрет)</label>
               <div style={{ display: 'flex', gap: '10px', alignItems: 'flex-start' }}>
                 <div
                   className="cover-upload-area"
@@ -164,46 +233,19 @@ export function BookFormSheet({ isOpen, onClose, editBook }: BookFormSheetProps)
                   )}
                 </div>
                 <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '7px', paddingTop: '4px' }}>
-                  <button
-                    type="button"
-                    onClick={() => fileInputRef.current?.click()}
-                    style={{
-                      padding: '9px 10px', background: 'transparent', border: '1px solid var(--border)',
-                      color: 'var(--text2)', fontFamily: "'Crimson Text', serif", fontSize: '.76rem',
-                      letterSpacing: '.1em', textTransform: 'uppercase', cursor: 'pointer', textAlign: 'left',
-                    }}
-                  >
+                  <button type="button" onClick={() => fileInputRef.current?.click()} style={{ padding: '9px 10px', background: 'transparent', border: '1px solid var(--border)', color: 'var(--text2)', fontFamily: "'Crimson Text', serif", fontSize: '.76rem', letterSpacing: '.1em', textTransform: 'uppercase', cursor: 'pointer', textAlign: 'left' }}>
                     📷 Загрузить фото
                   </button>
                   {(coverBase64 || coverOrigSrc) && (
-                    <button
-                      type="button"
-                      onClick={handleReCrop}
-                      style={{
-                        padding: '9px 10px', background: 'transparent', border: '1px solid var(--gold2)',
-                        color: 'var(--gold)', fontFamily: "'Crimson Text', serif", fontSize: '.76rem',
-                        letterSpacing: '.1em', textTransform: 'uppercase', cursor: 'pointer', textAlign: 'left',
-                      }}
-                    >
+                    <button type="button" onClick={handleCoverReCrop} style={{ padding: '9px 10px', background: 'transparent', border: '1px solid var(--gold2)', color: 'var(--gold)', fontFamily: "'Crimson Text', serif", fontSize: '.76rem', letterSpacing: '.1em', textTransform: 'uppercase', cursor: 'pointer', textAlign: 'left' }}>
                       ✂ Перекадрировать
                     </button>
                   )}
                   {coverBase64 && (
-                    <button
-                      type="button"
-                      onClick={() => { setCoverBase64(null); setCoverOrigSrc(null); }}
-                      style={{
-                        padding: '9px 10px', background: 'transparent', border: '1px solid rgba(122,53,32,.3)',
-                        color: 'rgba(160,80,55,.8)', fontFamily: "'Crimson Text', serif", fontSize: '.76rem',
-                        letterSpacing: '.1em', textTransform: 'uppercase', cursor: 'pointer', textAlign: 'left',
-                      }}
-                    >
+                    <button type="button" onClick={() => { setCoverBase64(null); setCoverOrigSrc(null); }} style={{ padding: '9px 10px', background: 'transparent', border: '1px solid rgba(122,53,32,.3)', color: 'rgba(160,80,55,.8)', fontFamily: "'Crimson Text', serif", fontSize: '.76rem', letterSpacing: '.1em', textTransform: 'uppercase', cursor: 'pointer', textAlign: 'left' }}>
                       ✕ Удалить обложку
                     </button>
                   )}
-                  <p style={{ fontFamily: "'Crimson Text', serif", fontSize: '.7rem', color: 'var(--text3)', fontStyle: 'italic', lineHeight: 1.4 }}>
-                    После загрузки можно выбрать нужную область и масштаб
-                  </p>
                 </div>
               </div>
               <div style={{ marginTop: '10px', display: 'flex', gap: '6px', alignItems: 'flex-start' }}>
@@ -211,37 +253,75 @@ export function BookFormSheet({ isOpen, onClose, editBook }: BookFormSheetProps)
                   <input
                     type="url"
                     placeholder="Или вставьте ссылку на изображение…"
-                    value={urlInput}
-                    onChange={e => { setUrlInput(e.target.value); setUrlError(false); }}
-                    onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); handleUrlLoad(); } }}
-                    style={{
-                      width: '100%', padding: '9px 10px', background: 'rgba(8,16,10,.8)',
-                      border: `1px solid ${urlError ? 'rgba(160,80,55,.7)' : 'var(--border)'}`,
-                      color: 'var(--text)', fontFamily: "'Crimson Text', serif", fontSize: '.85rem',
-                      outline: 'none', boxSizing: 'border-box',
-                    }}
+                    value={coverUrlInput}
+                    onChange={e => { setCoverUrlInput(e.target.value); setCoverUrlError(false); }}
+                    onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); handleCoverUrlLoad(); } }}
+                    style={{ ...urlInputStyle, border: `1px solid ${coverUrlError ? 'rgba(160,80,55,.7)' : 'var(--border)'}` }}
                   />
-                  {urlError && (
-                    <span style={{ fontFamily: "'Crimson Text', serif", fontSize: '.7rem', color: 'rgba(160,80,55,.9)', fontStyle: 'italic' }}>
-                      Не удалось загрузить. Попробуйте другую ссылку.
-                    </span>
-                  )}
+                  {coverUrlError && <span style={{ fontFamily: "'Crimson Text', serif", fontSize: '.7rem', color: 'rgba(160,80,55,.9)', fontStyle: 'italic' }}>Не удалось загрузить. Попробуйте другую ссылку.</span>}
                 </div>
-                <button
-                  type="button"
-                  onClick={handleUrlLoad}
-                  disabled={!urlInput.trim()}
-                  style={{
-                    padding: '9px 12px', background: 'transparent', border: '1px solid var(--border)',
-                    color: 'var(--text2)', fontFamily: "'Crimson Text', serif", fontSize: '.76rem',
-                    letterSpacing: '.1em', textTransform: 'uppercase', cursor: urlInput.trim() ? 'pointer' : 'default',
-                    opacity: urlInput.trim() ? 1 : 0.4, whiteSpace: 'nowrap', flexShrink: 0,
-                  }}
-                >
+                <button type="button" onClick={handleCoverUrlLoad} disabled={!coverUrlInput.trim()} style={{ ...urlBtnStyle, opacity: coverUrlInput.trim() ? 1 : 0.4, cursor: coverUrlInput.trim() ? 'pointer' : 'default' }}>
                   Загрузить
                 </button>
               </div>
-              <input type="file" ref={fileInputRef} accept="image/*" style={{ display: 'none' }} onChange={handleFileChange} />
+              <input type="file" ref={fileInputRef} accept="image/*" style={{ display: 'none' }} onChange={handleCoverFileChange} />
+            </div>
+
+            {/* Landscape cover — book page hero */}
+            <div className="field">
+              <label>Обложка страницы книги (альбом)</label>
+              <div style={{ display: 'flex', gap: '10px', alignItems: 'flex-start' }}>
+                <div
+                  className="cover-upload-area"
+                  style={{ aspectRatio: '16/9', width: '140px', flexShrink: 0, cursor: 'pointer' }}
+                  onClick={() => landscapeFileInputRef.current?.click()}
+                >
+                  <div className="cua-hover">
+                    <span style={{ fontSize: '1rem' }}>🖼</span>
+                    <span className="cu-text" style={{ fontSize: '.62rem' }}>Заменить</span>
+                  </div>
+                  {coverLandscapeBase64 ? (
+                    <img src={coverLandscapeBase64} className="cua-preview" alt="Landscape" style={{ objectFit: 'cover' }} />
+                  ) : (
+                    <>
+                      <span className="cu-icon" style={{ fontSize: '1.2rem' }}>🌄</span>
+                      <span className="cu-text" style={{ fontSize: '.62rem', textAlign: 'center', padding: '0 6px' }}>Нажмите чтобы загрузить</span>
+                    </>
+                  )}
+                </div>
+                <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '7px', paddingTop: '4px' }}>
+                  <button type="button" onClick={() => landscapeFileInputRef.current?.click()} style={{ padding: '9px 10px', background: 'transparent', border: '1px solid var(--border)', color: 'var(--text2)', fontFamily: "'Crimson Text', serif", fontSize: '.76rem', letterSpacing: '.1em', textTransform: 'uppercase', cursor: 'pointer', textAlign: 'left' }}>
+                    🖼 Загрузить фото
+                  </button>
+                  {(coverLandscapeBase64 || coverLandscapeOrigSrc) && (
+                    <button type="button" onClick={handleLandscapeReCrop} style={{ padding: '9px 10px', background: 'transparent', border: '1px solid var(--gold2)', color: 'var(--gold)', fontFamily: "'Crimson Text', serif", fontSize: '.76rem', letterSpacing: '.1em', textTransform: 'uppercase', cursor: 'pointer', textAlign: 'left' }}>
+                      ✂ Перекадрировать
+                    </button>
+                  )}
+                  {coverLandscapeBase64 && (
+                    <button type="button" onClick={() => { setCoverLandscapeBase64(null); setCoverLandscapeOrigSrc(null); }} style={{ padding: '9px 10px', background: 'transparent', border: '1px solid rgba(122,53,32,.3)', color: 'rgba(160,80,55,.8)', fontFamily: "'Crimson Text', serif", fontSize: '.76rem', letterSpacing: '.1em', textTransform: 'uppercase', cursor: 'pointer', textAlign: 'left' }}>
+                      ✕ Удалить
+                    </button>
+                  )}
+                </div>
+              </div>
+              <div style={{ marginTop: '10px', display: 'flex', gap: '6px', alignItems: 'flex-start' }}>
+                <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                  <input
+                    type="url"
+                    placeholder="Или вставьте ссылку на изображение…"
+                    value={landscapeUrlInput}
+                    onChange={e => { setLandscapeUrlInput(e.target.value); setLandscapeUrlError(false); }}
+                    onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); handleLandscapeUrlLoad(); } }}
+                    style={{ ...urlInputStyle, border: `1px solid ${landscapeUrlError ? 'rgba(160,80,55,.7)' : 'var(--border)'}` }}
+                  />
+                  {landscapeUrlError && <span style={{ fontFamily: "'Crimson Text', serif", fontSize: '.7rem', color: 'rgba(160,80,55,.9)', fontStyle: 'italic' }}>Не удалось загрузить. Попробуйте другую ссылку.</span>}
+                </div>
+                <button type="button" onClick={handleLandscapeUrlLoad} disabled={!landscapeUrlInput.trim()} style={{ ...urlBtnStyle, opacity: landscapeUrlInput.trim() ? 1 : 0.4, cursor: landscapeUrlInput.trim() ? 'pointer' : 'default' }}>
+                  Загрузить
+                </button>
+              </div>
+              <input type="file" ref={landscapeFileInputRef} accept="image/*" style={{ display: 'none' }} onChange={handleLandscapeFileChange} />
             </div>
 
             <div className="fr">
@@ -266,12 +346,19 @@ export function BookFormSheet({ isOpen, onClose, editBook }: BookFormSheetProps)
               </div>
               <div className="field">
                 <label>Жанр</label>
-                <select value={genre} onChange={e => setGenre(e.target.value)}>
+                <select value={genre} onChange={e => { setGenre(e.target.value); if (e.target.value !== 'Другое') setCustomGenre(""); }}>
                   <option value="">— выбрать —</option>
-                  <option>Классика</option><option>Роман</option><option>Поэзия</option>
-                  <option>Философия</option><option>История</option><option>Биография</option>
-                  <option>Наука</option><option>Детектив</option><option>Фантастика</option><option>Другое</option>
+                  {GENRES.filter(g => g).map(g => <option key={g}>{g}</option>)}
                 </select>
+                {genre === 'Другое' && (
+                  <input
+                    type="text"
+                    placeholder="Введите свой жанр…"
+                    value={customGenre}
+                    onChange={e => setCustomGenre(e.target.value)}
+                    style={{ marginTop: '6px' }}
+                  />
+                )}
               </div>
             </div>
 
@@ -295,48 +382,6 @@ export function BookFormSheet({ isOpen, onClose, editBook }: BookFormSheetProps)
               <textarea value={synopsis} onChange={e => setSynopsis(e.target.value)} placeholder="О чём эта книга…" style={{ minHeight: '70px' }}></textarea>
             </div>
 
-            <div className="field">
-              <label>Словарь непонятных слов</label>
-              <div className="vlist">
-                {vocab.map(v => (
-                  <div key={v.id} className="ve">
-                    <input type="text" placeholder="Слово" value={v.word} onChange={e => updateV(v.id, 'word', e.target.value)} />
-                    <input type="text" placeholder="Объяснение" value={v.meaning} onChange={e => updateV(v.id, 'meaning', e.target.value)} />
-                    <button type="button" className="vd" onClick={() => removeVRow(v.id)}>✕</button>
-                  </div>
-                ))}
-              </div>
-              <button type="button" className="vadd" onClick={addVRow}>+ Добавить слово</button>
-            </div>
-
-            <div className="field">
-              <label>Цитаты</label>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '7px', marginBottom: '8px' }}>
-                {quoteItems.map(q => (
-                  <div key={q.id} style={{ display: 'grid', gridTemplateColumns: '1fr auto', gap: '6px', alignItems: 'flex-start' }}>
-                    <textarea
-                      value={q.text}
-                      onChange={e => setQuoteItems(quoteItems.map(x => x.id === q.id ? { ...x, text: e.target.value } : x))}
-                      placeholder="«Цитата из книги»"
-                      style={{
-                        width: '100%', padding: '8px 9px', background: 'rgba(8,16,10,.8)',
-                        border: '1px solid var(--border)', fontFamily: "'IM Fell English', serif",
-                        fontSize: '.9rem', color: 'var(--text)', outline: 'none',
-                        resize: 'vertical', lineHeight: 1.6, minHeight: '60px', borderRadius: 0,
-                      }}
-                    />
-                    <button type="button" className="vd" style={{ height: '60px', width: '28px' }} onClick={() => setQuoteItems(quoteItems.filter(x => x.id !== q.id))}>✕</button>
-                  </div>
-                ))}
-              </div>
-              <button type="button" className="vadd" onClick={() => setQuoteItems([...quoteItems, { id: Math.random().toString(), text: '' }])}>+ Добавить цитату</button>
-            </div>
-
-            <div className="field">
-              <label>Мои личные мысли</label>
-              <textarea value={thoughts} onChange={e => setThoughts(e.target.value)} placeholder="Впечатления, размышления…"></textarea>
-            </div>
-
             <button className="sbtn" onClick={handleSave} disabled={isPending}>
               {isPending ? 'Сохранение...' : (isEdit ? 'Обновить книгу' : 'Сохранить в библиотеке')}
             </button>
@@ -347,11 +392,15 @@ export function BookFormSheet({ isOpen, onClose, editBook }: BookFormSheetProps)
       {cropOrigSrc && (
         <Cropper
           imageSrc={cropOrigSrc}
-          defaultOrient="portrait"
+          defaultOrient={cropMode}
           hideToggle
           onCancel={() => setCropOrigSrc(null)}
           onApply={(b64) => {
-            setCoverBase64(b64);
+            if (cropMode === 'portrait') {
+              setCoverBase64(b64);
+            } else {
+              setCoverLandscapeBase64(b64);
+            }
             setCropOrigSrc(null);
           }}
         />
