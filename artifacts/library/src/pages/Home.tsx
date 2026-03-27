@@ -210,8 +210,8 @@ export default function Home() {
                 <div className="card-lang-badge">{LL[b.lang] || b.lang}</div>
               </div>
               <div className="card-info">
-                <div className="ci-auth">{b.author}</div>
                 <div className="ci-title">{b.title}</div>
+                <div className="ci-auth">{b.author}</div>
                 <div className="ci-meta">
                   {b.genre && <div className="ci-genre">{b.genre}</div>}
                   <div className="ci-year">{b.year || ''}</div>
