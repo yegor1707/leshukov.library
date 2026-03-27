@@ -323,10 +323,10 @@ export default function BookPage({ params }: { params: { id: string } }) {
                   <>
                     {book.vocab && book.vocab.length > 0 ? (
                       <table className="vtbl" style={{ width: '100%' }}>
-                        <thead><tr><th>Слово</th><th>Объяснение</th></tr></thead>
+                        <thead><tr><th style={{ width: '36px', textAlign: 'center' }}>№</th><th>Слово</th><th>Объяснение</th></tr></thead>
                         <tbody>
                           {book.vocab.map((v, i) => (
-                            <tr key={i}><td>{v.word}</td><td>{v.meaning}</td></tr>
+                            <tr key={i}><td style={{ textAlign: 'center', opacity: 0.5 }}>{i + 1}</td><td>{v.word}</td><td>{v.meaning}</td></tr>
                           ))}
                         </tbody>
                       </table>
