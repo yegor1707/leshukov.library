@@ -12,7 +12,6 @@ interface BookFormSheetProps {
 
 export function BookFormSheet({ isOpen, onClose, editBook }: BookFormSheetProps) {
   const { createBook, updateBook, isCreating, isUpdating } = useBookMutations();
-  
   const isEdit = !!editBook;
   const isPending = isCreating || isUpdating;
 
@@ -27,7 +26,7 @@ export function BookFormSheet({ isOpen, onClose, editBook }: BookFormSheetProps)
   const [thoughts, setThoughts] = useState("");
   const [vocab, setVocab] = useState<{id: string, word: string, meaning: string}[]>([]);
   const [coverBase64, setCoverBase64] = useState<string | null>(null);
-
+  const [coverOrigSrc, setCoverOrigSrc] = useState<string | null>(null);
   const [cropOrigSrc, setCropOrigSrc] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -45,18 +44,11 @@ export function BookFormSheet({ isOpen, onClose, editBook }: BookFormSheetProps)
         setThoughts(editBook.thoughts || "");
         setVocab(editBook.vocab?.map(v => ({ id: Math.random().toString(), ...v })) || []);
         setCoverBase64(editBook.cover || null);
+        setCoverOrigSrc(null);
       } else {
-        setTitle("");
-        setAuthor("");
-        setLang("ru");
-        setGenre("");
-        setYear("");
-        setRating(0);
-        setSynopsis("");
-        setQuotes("");
-        setThoughts("");
-        setVocab([]);
-        setCoverBase64(null);
+        setTitle(""); setAuthor(""); setLang("ru"); setGenre(""); setYear("");
+        setRating(0); setSynopsis(""); setQuotes(""); setThoughts(""); setVocab([]);
+        setCoverBase64(null); setCoverOrigSrc(null);
       }
     }
   }, [isOpen, editBook]);
@@ -66,64 +58,49 @@ export function BookFormSheet({ isOpen, onClose, editBook }: BookFormSheetProps)
     if (!file) return;
     const reader = new FileReader();
     reader.onload = (ev) => {
-      setCropOrigSrc(ev.target?.result as string);
+      const src = ev.target?.result as string;
+      setCoverOrigSrc(src);
+      setCropOrigSrc(src);
     };
     reader.readAsDataURL(file);
     if (fileInputRef.current) fileInputRef.current.value = '';
   };
 
-  const handleSave = async () => {
-    if (!title.trim() || !author.trim()) {
-      showToast("Введите название и автора");
-      return;
+  const handleReCrop = () => {
+    if (coverOrigSrc) {
+      setCropOrigSrc(coverOrigSrc);
+    } else if (coverBase64) {
+      setCropOrigSrc(coverBase64);
     }
+  };
 
+  const handleSave = async () => {
+    if (!title.trim() || !author.trim()) { showToast("Введите название и автора"); return; }
     const payload = {
       data: {
-        title: title.trim(),
-        author: author.trim(),
-        lang,
-        genre,
-        year: year ? parseInt(year) : null,
-        rating,
-        synopsis: synopsis.trim(),
-        quotes: quotes.trim(),
-        thoughts: thoughts.trim(),
+        title: title.trim(), author: author.trim(), lang, genre,
+        year: year ? parseInt(year) : null, rating,
+        synopsis: synopsis.trim(), quotes: quotes.trim(), thoughts: thoughts.trim(),
         vocab: vocab.filter(v => v.word.trim()).map(v => ({ word: v.word.trim(), meaning: v.meaning.trim() })),
         cover: coverBase64
       }
     };
-
     try {
-      if (isEdit) {
-        await updateBook({ id: editBook.id, ...payload });
-        showToast("Книга обновлена");
-      } else {
-        await createBook(payload);
-        showToast("Книга добавлена");
-      }
+      if (isEdit) { await updateBook({ id: editBook.id, ...payload }); showToast("Книга обновлена"); }
+      else { await createBook(payload); showToast("Книга добавлена"); }
       onClose();
-    } catch (err) {
-      showToast("Ошибка сохранения");
-    }
+    } catch { showToast("Ошибка сохранения"); }
   };
 
-  const addVRow = () => {
-    setVocab([...vocab, { id: Math.random().toString(), word: "", meaning: "" }]);
-  };
-
-  const removeVRow = (id: string) => {
-    setVocab(vocab.filter(v => v.id !== id));
-  };
-
-  const updateV = (id: string, field: 'word'|'meaning', val: string) => {
+  const addVRow = () => setVocab([...vocab, { id: Math.random().toString(), word: "", meaning: "" }]);
+  const removeVRow = (id: string) => setVocab(vocab.filter(v => v.id !== id));
+  const updateV = (id: string, field: 'word'|'meaning', val: string) =>
     setVocab(vocab.map(v => v.id === id ? { ...v, [field]: val } : v));
-  };
 
   return (
     <>
-      <div 
-        className={`overlay ${isOpen && !cropOrigSrc ? 'open' : ''}`} 
+      <div
+        className={`overlay ${isOpen && !cropOrigSrc ? 'open' : ''}`}
         onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}
       >
         <div className="sheet">
@@ -131,27 +108,76 @@ export function BookFormSheet({ isOpen, onClose, editBook }: BookFormSheetProps)
           <div className="sh">
             <div className="sh-lbl">{isEdit ? 'Редактирование' : 'Новая книга'}</div>
             <h2>{isEdit ? 'Изменить запись' : 'Добавить в коллекцию'}</h2>
-            <button className="mc" onClick={onClose}>&#10005;</button>
+            <button className="mc" onClick={onClose}>✕</button>
           </div>
           <div className="fb">
+
+            {/* Cover upload — portrait ratio, re-crop support */}
             <div className="field">
               <label>Обложка книги</label>
-              <div className="cover-upload-area" onClick={() => fileInputRef.current?.click()}>
-                <div className="cua-hover">
-                  <span style={{fontSize: '1.2rem'}}>📷</span>
-                  <span className="cu-text">Изменить</span>
+              <div style={{ display: 'flex', gap: '10px', alignItems: 'flex-start' }}>
+                <div
+                  className="cover-upload-area"
+                  style={{ aspectRatio: '2/3', width: '110px', flexShrink: 0, cursor: 'pointer' }}
+                  onClick={() => fileInputRef.current?.click()}
+                >
+                  <div className="cua-hover">
+                    <span style={{ fontSize: '1rem' }}>📷</span>
+                    <span className="cu-text" style={{ fontSize: '.62rem' }}>Заменить</span>
+                  </div>
+                  {coverBase64 ? (
+                    <img src={coverBase64} className="cua-preview" alt="Cover" style={{ objectFit: 'contain' }} />
+                  ) : (
+                    <>
+                      <span className="cu-icon" style={{ fontSize: '1.2rem' }}>📚</span>
+                      <span className="cu-text" style={{ fontSize: '.62rem', textAlign: 'center', padding: '0 6px' }}>Нажмите чтобы загрузить</span>
+                    </>
+                  )}
                 </div>
-                {coverBase64 ? (
-                  <img src={coverBase64} className="cua-preview" alt="Cover preview" />
-                ) : (
-                  <>
-                    <span className="cu-icon">&#128218;</span>
-                    <span className="cu-text">Нажмите чтобы загрузить</span>
-                    <span className="cu-hint">Фото или скриншот обложки</span>
-                  </>
-                )}
+                <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '7px', paddingTop: '4px' }}>
+                  <button
+                    type="button"
+                    onClick={() => fileInputRef.current?.click()}
+                    style={{
+                      padding: '9px 10px', background: 'transparent', border: '1px solid var(--border)',
+                      color: 'var(--text2)', fontFamily: "'Crimson Text', serif", fontSize: '.76rem',
+                      letterSpacing: '.1em', textTransform: 'uppercase', cursor: 'pointer', textAlign: 'left',
+                    }}
+                  >
+                    📷 Загрузить фото
+                  </button>
+                  {(coverBase64 || coverOrigSrc) && (
+                    <button
+                      type="button"
+                      onClick={handleReCrop}
+                      style={{
+                        padding: '9px 10px', background: 'transparent', border: '1px solid var(--gold2)',
+                        color: 'var(--gold)', fontFamily: "'Crimson Text', serif", fontSize: '.76rem',
+                        letterSpacing: '.1em', textTransform: 'uppercase', cursor: 'pointer', textAlign: 'left',
+                      }}
+                    >
+                      ✂ Перекадрировать
+                    </button>
+                  )}
+                  {coverBase64 && (
+                    <button
+                      type="button"
+                      onClick={() => { setCoverBase64(null); setCoverOrigSrc(null); }}
+                      style={{
+                        padding: '9px 10px', background: 'transparent', border: '1px solid rgba(122,53,32,.3)',
+                        color: 'rgba(160,80,55,.8)', fontFamily: "'Crimson Text', serif", fontSize: '.76rem',
+                        letterSpacing: '.1em', textTransform: 'uppercase', cursor: 'pointer', textAlign: 'left',
+                      }}
+                    >
+                      ✕ Удалить обложку
+                    </button>
+                  )}
+                  <p style={{ fontFamily: "'Crimson Text', serif", fontSize: '.7rem', color: 'var(--text3)', fontStyle: 'italic', lineHeight: 1.4 }}>
+                    После загрузки можно выбрать нужную область и масштаб
+                  </p>
+                </div>
               </div>
-              <input type="file" ref={fileInputRef} accept="image/*" style={{display: 'none'}} onChange={handleFileChange} />
+              <input type="file" ref={fileInputRef} accept="image/*" style={{ display: 'none' }} onChange={handleFileChange} />
             </div>
 
             <div className="fr">
@@ -194,7 +220,7 @@ export function BookFormSheet({ isOpen, onClose, editBook }: BookFormSheetProps)
                 <label>Оценка</label>
                 <div className="rrow">
                   {[1,2,3,4,5].map(v => (
-                    <span key={v} className={`rs ${rating >= v ? 'active' : ''}`} onClick={() => setRating(v)}>&#9733;</span>
+                    <span key={v} className={`rs ${rating >= v ? 'active' : ''}`} onClick={() => setRating(v)}>★</span>
                   ))}
                 </div>
               </div>
@@ -202,7 +228,7 @@ export function BookFormSheet({ isOpen, onClose, editBook }: BookFormSheetProps)
 
             <div className="field">
               <label>Синопсис</label>
-              <textarea value={synopsis} onChange={e => setSynopsis(e.target.value)} placeholder="О чём эта книга…" style={{minHeight:'70px'}}></textarea>
+              <textarea value={synopsis} onChange={e => setSynopsis(e.target.value)} placeholder="О чём эта книга…" style={{ minHeight: '70px' }}></textarea>
             </div>
 
             <div className="field">
@@ -212,7 +238,7 @@ export function BookFormSheet({ isOpen, onClose, editBook }: BookFormSheetProps)
                   <div key={v.id} className="ve">
                     <input type="text" placeholder="Слово" value={v.word} onChange={e => updateV(v.id, 'word', e.target.value)} />
                     <input type="text" placeholder="Объяснение" value={v.meaning} onChange={e => updateV(v.id, 'meaning', e.target.value)} />
-                    <button type="button" className="vd" onClick={() => removeVRow(v.id)}>&#10005;</button>
+                    <button type="button" className="vd" onClick={() => removeVRow(v.id)}>✕</button>
                   </div>
                 ))}
               </div>
@@ -221,7 +247,7 @@ export function BookFormSheet({ isOpen, onClose, editBook }: BookFormSheetProps)
 
             <div className="field">
               <label>Цитаты</label>
-              <textarea value={quotes} onChange={e => setQuotes(e.target.value)} placeholder="«Цитата»&#10;«Ещё одна»" style={{minHeight:'80px'}}></textarea>
+              <textarea value={quotes} onChange={e => setQuotes(e.target.value)} placeholder={"«Цитата»\n«Ещё одна»"} style={{ minHeight: '80px' }}></textarea>
             </div>
 
             <div className="field">
@@ -237,8 +263,8 @@ export function BookFormSheet({ isOpen, onClose, editBook }: BookFormSheetProps)
       </div>
 
       {cropOrigSrc && (
-        <Cropper 
-          imageSrc={cropOrigSrc} 
+        <Cropper
+          imageSrc={cropOrigSrc}
           onCancel={() => setCropOrigSrc(null)}
           onApply={(b64) => {
             setCoverBase64(b64);
