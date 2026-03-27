@@ -5,6 +5,7 @@ import { useBookMutations } from "@/hooks/use-books";
 import { useAdmin } from "@/hooks/use-admin";
 import { showToast } from "@/components/Toast";
 import { Cropper } from "@/components/Cropper";
+import { BookFormSheet } from "@/components/BookFormSheet";
 
 const LL_FULL: Record<string, string> = {
   ru: '🇷🇺 Русский',
@@ -29,6 +30,7 @@ export default function BookPage({ params }: { params: { id: string } }) {
   const [noteText, setNoteText] = useState("");
 
   const [editingTab, setEditingTab] = useState<string | null>(null);
+  const [editFormOpen, setEditFormOpen] = useState(false);
   const [editSynopsis, setEditSynopsis] = useState("");
   const [editThoughts, setEditThoughts] = useState("");
   const [editVocab, setEditVocab] = useState<{ id: string; word: string; meaning: string }[]>([]);
@@ -264,8 +266,15 @@ export default function BookPage({ params }: { params: { id: string } }) {
             </div>
 
             {isAdmin && (
-              <div style={{ display: 'flex', gap: '8px', marginBottom: '20px' }}>
-                <button className="vdelbtn" onClick={handleDelete} disabled={isDeleting}>Удалить книгу</button>
+              <div style={{ display: 'flex', gap: '8px', marginBottom: '20px', flexWrap: 'wrap' }}>
+                <button
+                  className="vedit"
+                  onClick={() => setEditFormOpen(true)}
+                  style={{ flex: 1 }}
+                >
+                  ✎ Редактировать книгу
+                </button>
+                <button className="vdelbtn" onClick={handleDelete} disabled={isDeleting}>Удалить</button>
               </div>
             )}
           </div>
@@ -540,6 +549,13 @@ export default function BookPage({ params }: { params: { id: string } }) {
           }}
         />
       )}
+
+      {/* Edit book metadata form */}
+      <BookFormSheet
+        isOpen={editFormOpen}
+        onClose={() => setEditFormOpen(false)}
+        editBook={book}
+      />
     </>
   );
 }

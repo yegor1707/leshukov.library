@@ -21,7 +21,12 @@ export function useBookMutations() {
   const queryClient = useQueryClient();
 
   const invalidateBooks = () => {
-    queryClient.invalidateQueries({ queryKey: ['/api/books'] });
+    queryClient.invalidateQueries({
+      predicate: (query) => {
+        const key = query.queryKey[0];
+        return typeof key === 'string' && key.startsWith('/api/books');
+      }
+    });
   };
 
   const create = useCreateBook({
