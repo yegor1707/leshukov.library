@@ -1,6 +1,5 @@
 import { Router, type IRouter } from "express";
-import { db, booksTable, notesTable, thoughtItemsTable } from "@workspace/db";
-import { eq } from "drizzle-orm";
+import { supabase } from "../supabase";
 import { z } from "zod";
 
 const router: IRouter = Router();
@@ -40,15 +39,39 @@ function formatBook(b: any) {
     thoughts: b.thoughts ?? null,
     vocab: b.vocab ?? [],
     cover: b.cover ?? null,
-    coverLandscape: b.coverLandscape ?? null,
-    createdAt: b.createdAt instanceof Date ? b.createdAt.toISOString() : b.createdAt,
+    coverLandscape: b.cover_landscape ?? null,
+    createdAt: b.created_at ?? null,
+  };
+}
+
+function formatNote(n: any) {
+  return {
+    id: n.id,
+    bookId: n.book_id,
+    text: n.text,
+    createdAt: n.created_at ?? null,
+  };
+}
+
+function formatThought(t: any) {
+  return {
+    id: t.id,
+    bookId: t.book_id,
+    text: t.text,
+    createdAt: t.created_at ?? null,
   };
 }
 
 router.get("/", async (req, res) => {
   try {
     const { lang, search } = req.query as { lang?: string; search?: string };
-    let books = await db.select().from(booksTable).orderBy(booksTable.createdAt);
+
+    let query = supabase.from("books").select("*").order("created_at");
+    const { data, error } = await query;
+
+    if (error) throw error;
+
+    let books = (data || []).map(formatBook);
     if (lang && lang !== "all") {
       books = books.filter((b) => b.lang === lang);
     }
@@ -60,7 +83,7 @@ router.get("/", async (req, res) => {
           (b.author || "").toLowerCase().includes(q)
       );
     }
-    res.json(books.map(formatBook));
+    res.json(books);
   } catch (err) {
     req.log.error({ err }, "Failed to list books");
     res.status(500).json({ error: "Internal server error" });
@@ -76,9 +99,9 @@ router.post("/", async (req, res) => {
     }
     const data = parsed.data;
     const id = gid();
-    const [book] = await db
-      .insert(booksTable)
-      .values({
+    const { data: book, error } = await supabase
+      .from("books")
+      .insert({
         id,
         title: data.title,
         author: data.author,
@@ -91,9 +114,12 @@ router.post("/", async (req, res) => {
         thoughts: data.thoughts ?? null,
         vocab: data.vocab,
         cover: data.cover ?? null,
-        coverLandscape: data.coverLandscape ?? null,
+        cover_landscape: data.coverLandscape ?? null,
       })
-      .returning();
+      .select()
+      .single();
+
+    if (error) throw error;
     res.status(201).json(formatBook(book));
   } catch (err) {
     req.log.error({ err }, "Failed to create book");
@@ -103,11 +129,13 @@ router.post("/", async (req, res) => {
 
 router.get("/:id", async (req, res) => {
   try {
-    const [book] = await db
-      .select()
-      .from(booksTable)
-      .where(eq(booksTable.id, req.params.id));
-    if (!book) {
+    const { data: book, error } = await supabase
+      .from("books")
+      .select("*")
+      .eq("id", req.params.id)
+      .single();
+
+    if (error || !book) {
       res.status(404).json({ error: "Not found" });
       return;
     }
@@ -126,25 +154,32 @@ router.put("/:id", async (req, res) => {
       return;
     }
     const data = parsed.data;
-    const [book] = await db
-      .update(booksTable)
-      .set({
-        title: data.title,
-        author: data.author,
-        lang: data.lang,
-        genre: data.genre,
-        year: data.year ?? null,
-        rating: data.rating ?? null,
-        synopsis: data.synopsis ?? null,
-        quotes: data.quotes ?? null,
-        thoughts: data.thoughts ?? null,
-        vocab: data.vocab,
-        cover: data.cover ?? null,
-        ...(data.coverLandscape !== undefined ? { coverLandscape: data.coverLandscape } : {}),
-      })
-      .where(eq(booksTable.id, req.params.id))
-      .returning();
-    if (!book) {
+
+    const updatePayload: any = {
+      title: data.title,
+      author: data.author,
+      lang: data.lang,
+      genre: data.genre,
+      year: data.year ?? null,
+      rating: data.rating ?? null,
+      synopsis: data.synopsis ?? null,
+      quotes: data.quotes ?? null,
+      thoughts: data.thoughts ?? null,
+      vocab: data.vocab,
+      cover: data.cover ?? null,
+    };
+    if (data.coverLandscape !== undefined) {
+      updatePayload.cover_landscape = data.coverLandscape;
+    }
+
+    const { data: book, error } = await supabase
+      .from("books")
+      .update(updatePayload)
+      .eq("id", req.params.id)
+      .select()
+      .single();
+
+    if (error || !book) {
       res.status(404).json({ error: "Not found" });
       return;
     }
@@ -157,7 +192,11 @@ router.put("/:id", async (req, res) => {
 
 router.delete("/:id", async (req, res) => {
   try {
-    await db.delete(booksTable).where(eq(booksTable.id, req.params.id));
+    const { error } = await supabase
+      .from("books")
+      .delete()
+      .eq("id", req.params.id);
+    if (error) throw error;
     res.status(204).send();
   } catch (err) {
     req.log.error({ err }, "Failed to delete book");
@@ -167,19 +206,13 @@ router.delete("/:id", async (req, res) => {
 
 router.get("/:id/notes", async (req, res) => {
   try {
-    const notes = await db
-      .select()
-      .from(notesTable)
-      .where(eq(notesTable.bookId, req.params.id))
-      .orderBy(notesTable.createdAt);
-    res.json(
-      notes.map((n) => ({
-        id: n.id,
-        bookId: n.bookId,
-        text: n.text,
-        createdAt: n.createdAt instanceof Date ? n.createdAt.toISOString() : n.createdAt,
-      }))
-    );
+    const { data, error } = await supabase
+      .from("notes")
+      .select("*")
+      .eq("book_id", req.params.id)
+      .order("created_at");
+    if (error) throw error;
+    res.json((data || []).map(formatNote));
   } catch (err) {
     req.log.error({ err }, "Failed to list notes");
     res.status(500).json({ error: "Internal server error" });
@@ -193,39 +226,42 @@ router.post("/:id/notes", async (req, res) => {
       res.status(400).json({ error: "text required" });
       return;
     }
-    const [note] = await db
-      .insert(notesTable)
-      .values({
-        id: gid(),
-        bookId: req.params.id,
-        text,
-      })
-      .returning();
-    res.status(201).json({
-      id: note.id,
-      bookId: note.bookId,
-      text: note.text,
-      createdAt: note.createdAt instanceof Date ? note.createdAt.toISOString() : note.createdAt,
-    });
+    const { data: note, error } = await supabase
+      .from("notes")
+      .insert({ id: gid(), book_id: req.params.id, text })
+      .select()
+      .single();
+    if (error) throw error;
+    res.status(201).json(formatNote(note));
   } catch (err) {
     req.log.error({ err }, "Failed to add note");
     res.status(500).json({ error: "Internal server error" });
   }
 });
 
+router.delete("/:id/notes/:noteId", async (req, res) => {
+  try {
+    const { error } = await supabase
+      .from("notes")
+      .delete()
+      .eq("id", req.params.noteId);
+    if (error) throw error;
+    res.status(204).send();
+  } catch (err) {
+    req.log.error({ err }, "Failed to delete note");
+    res.status(500).json({ error: "Internal server error" });
+  }
+});
+
 router.get("/:id/thoughts", async (req, res) => {
   try {
-    const items = await db
-      .select()
-      .from(thoughtItemsTable)
-      .where(eq(thoughtItemsTable.bookId, req.params.id))
-      .orderBy(thoughtItemsTable.createdAt);
-    res.json(items.map((t) => ({
-      id: t.id,
-      bookId: t.bookId,
-      text: t.text,
-      createdAt: t.createdAt instanceof Date ? t.createdAt.toISOString() : t.createdAt,
-    })));
+    const { data, error } = await supabase
+      .from("thought_items")
+      .select("*")
+      .eq("book_id", req.params.id)
+      .order("created_at");
+    if (error) throw error;
+    res.json((data || []).map(formatThought));
   } catch (err) {
     req.log.error({ err }, "Failed to list thoughts");
     res.status(500).json({ error: "Internal server error" });
@@ -239,16 +275,13 @@ router.post("/:id/thoughts", async (req, res) => {
       res.status(400).json({ error: "text required" });
       return;
     }
-    const [item] = await db
-      .insert(thoughtItemsTable)
-      .values({ id: gid(), bookId: req.params.id, text })
-      .returning();
-    res.status(201).json({
-      id: item.id,
-      bookId: item.bookId,
-      text: item.text,
-      createdAt: item.createdAt instanceof Date ? item.createdAt.toISOString() : item.createdAt,
-    });
+    const { data: item, error } = await supabase
+      .from("thought_items")
+      .insert({ id: gid(), book_id: req.params.id, text })
+      .select()
+      .single();
+    if (error) throw error;
+    res.status(201).json(formatThought(item));
   } catch (err) {
     req.log.error({ err }, "Failed to add thought");
     res.status(500).json({ error: "Internal server error" });
@@ -257,7 +290,11 @@ router.post("/:id/thoughts", async (req, res) => {
 
 router.delete("/:id/thoughts/:thoughtId", async (req, res) => {
   try {
-    await db.delete(thoughtItemsTable).where(eq(thoughtItemsTable.id, req.params.thoughtId));
+    const { error } = await supabase
+      .from("thought_items")
+      .delete()
+      .eq("id", req.params.thoughtId);
+    if (error) throw error;
     res.status(204).send();
   } catch (err) {
     req.log.error({ err }, "Failed to delete thought");
