@@ -203,8 +203,7 @@ h1 em{font-style:italic;color:var(--gold);}
 .sn-list{margin-top:12px;display:flex;flex-direction:column;gap:9px;}
 .sni{background:rgba(200,168,74,.05);border:1px solid var(--bord2);padding:10px 12px;word-break:break-word;overflow-wrap:break-word;}
 .sni-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:3px;}
-.sni-actions{display:flex;gap:4px;opacity:0;transition:opacity .15s;}
-.sni:hover .sni-actions{opacity:1;}
+.sni-actions{display:flex;gap:4px;}
 .sni-btn{background:transparent;border:none;color:var(--text3);font-size:.8rem;cursor:pointer;padding:2px 5px;line-height:1;}
 .sni-btn:hover{color:var(--gold);}
 .sni-del:hover{color:var(--rust);}

@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { useLocation } from "wouter";
 import { useGetBook, useListNotes, useAddNote } from "@workspace/api-client-react";
-import { useBookMutations, useThoughts, useThoughtMutations } from "@/hooks/use-books";
+import { useBookMutations, useThoughts, useThoughtMutations, useBookNoteMutations } from "@/hooks/use-books";
 import { useAdmin } from "@/hooks/use-admin";
 import { showToast } from "@/components/Toast";
 import { BookFormSheet } from "@/components/BookFormSheet";
@@ -56,6 +56,8 @@ export default function BookPage({ params }: { params: { id: string } }) {
   const [activeTab, setActiveTab] = useState('synopsis');
   const [noteText, setNoteText] = useState("");
   const [thoughtText, setThoughtText] = useState("");
+  const [editingNoteId, setEditingNoteId] = useState<string | null>(null);
+  const [editingNoteText, setEditingNoteText] = useState("");
 
   const [editingTab, setEditingTab] = useState<string | null>(null);
   const [editFormOpen, setEditFormOpen] = useState(false);
@@ -85,6 +87,7 @@ export default function BookPage({ params }: { params: { id: string } }) {
   const { data: thoughtItems = [] } = useThoughts(params.id);
   const { deleteBook, isDeleting, updateBook, isUpdating } = useBookMutations();
   const addNoteMutation = useAddNote();
+  const { updateNote, isUpdatingNote, deleteNote } = useBookNoteMutations(params.id);
   const { addThought, isAdding: isAddingThought, removeThought } = useThoughtMutations(params.id);
 
   const handleDelete = async () => {
@@ -106,6 +109,38 @@ export default function BookPage({ params }: { params: { id: string } }) {
       showToast('Заметка сохранена');
     } catch {
       showToast('Ошибка сохранения');
+    }
+  };
+
+  const handleStartEditNote = (noteId: string, text: string) => {
+    setEditingNoteId(noteId);
+    setEditingNoteText(text);
+  };
+
+  const handleCancelEditNote = () => {
+    setEditingNoteId(null);
+    setEditingNoteText("");
+  };
+
+  const handleSaveEditNote = async (noteId: string) => {
+    if (!editingNoteText.trim()) return;
+    try {
+      await updateNote({ noteId, text: editingNoteText.trim() });
+      setEditingNoteId(null);
+      setEditingNoteText("");
+      showToast('Заметка обновлена');
+    } catch {
+      showToast('Ошибка сохранения');
+    }
+  };
+
+  const handleDeleteNote = async (noteId: string) => {
+    if (!window.confirm('Удалить заметку?')) return;
+    try {
+      await deleteNote(noteId);
+      showToast('Заметка удалена');
+    } catch {
+      showToast('Ошибка удаления');
     }
   };
 
@@ -499,8 +534,35 @@ export default function BookPage({ params }: { params: { id: string } }) {
                 <div className="sn-list" style={{ marginTop: '14px' }}>
                   {notes.length > 0 ? notes.map(n => (
                     <div key={n.id} className="sni">
-                      <div className="snm">{new Date(n.createdAt).toLocaleDateString('ru-RU', { day: 'numeric', month: 'long', year: 'numeric' })}</div>
-                      <div className="snt">{n.text}</div>
+                      <div className="sni-header">
+                        <div className="snm">{new Date(n.createdAt).toLocaleDateString('ru-RU', { day: 'numeric', month: 'long', year: 'numeric' })}</div>
+                        <div className="sni-actions">
+                          {editingNoteId !== n.id && (
+                            <>
+                              <button className="sni-btn" onClick={() => handleStartEditNote(n.id, n.text)}>✎</button>
+                              <button className="sni-btn sni-del" onClick={() => handleDeleteNote(n.id)}>✕</button>
+                            </>
+                          )}
+                        </div>
+                      </div>
+                      {editingNoteId === n.id ? (
+                        <div className="sni-edit">
+                          <textarea
+                            className="sn-area"
+                            value={editingNoteText}
+                            onChange={e => setEditingNoteText(e.target.value)}
+                            style={{ marginTop: '6px' }}
+                          />
+                          <div className="sni-edit-btns">
+                            <button className="sn-save" onClick={() => handleSaveEditNote(n.id)} disabled={isUpdatingNote}>
+                              {isUpdatingNote ? 'Сохранение…' : 'Сохранить'}
+                            </button>
+                            <button className="sni-cancel" onClick={handleCancelEditNote}>Отмена</button>
+                          </div>
+                        </div>
+                      ) : (
+                        <div className="snt">{n.text}</div>
+                      )}
                     </div>
                   )) : (
                     <div className="sec-empty" style={{ paddingTop: '10px' }}>Заметок пока нет</div>
