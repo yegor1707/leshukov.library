@@ -107,7 +107,8 @@ export function BookFormSheet({ isOpen, onClose, editBook }: BookFormSheetProps)
     const payload = {
       data: {
         title: title.trim(), author: author.trim(), lang, genre,
-        year: year ? parseInt(year) : null, rating,
+        year: year ? parseInt(year) : null,
+        rating: rating > 0 ? rating : null,
         synopsis: synopsis.trim(), quotes: quoteItems.filter(q => q.text.trim()).map(q => q.text.trim()).join('\n'), thoughts: thoughts.trim(),
         vocab: vocab.filter(v => v.word.trim()).map(v => ({ word: v.word.trim(), meaning: v.meaning.trim() })),
         cover: coverBase64
