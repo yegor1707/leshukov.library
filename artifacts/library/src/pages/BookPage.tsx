@@ -218,7 +218,7 @@ export default function BookPage({ params }: { params: { id: string } }) {
             <h1 style={{ fontFamily: "'Playfair Display', serif", fontSize: 'clamp(1.5rem, 5vw, 2.2rem)', color: 'var(--ivory)', fontWeight: 900, lineHeight: 1.1, marginBottom: '6px' }}>
               {book.title}
             </h1>
-            <p style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: '1.1rem', fontStyle: 'italic', fontWeight: 600, color: 'var(--text2)', letterSpacing: '.04em', marginBottom: '12px' }}>
+            <p style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: '1.1rem', fontStyle: 'italic', fontWeight: 600, color: 'var(--text2)', letterSpacing: '.04em', marginBottom: '12px', wordBreak: 'break-word', overflowWrap: 'break-word' }}>
               {book.author}
             </p>
             <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap', marginBottom: '20px' }}>

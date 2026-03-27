@@ -85,7 +85,7 @@ h1 em{font-style:italic;color:var(--gold);}
 .stats strong{color:var(--ivory2);font-style:normal;}
 
 .grid-books{position:relative;z-index:1;padding:14px 14px 80px;display:grid;grid-template-columns:1fr 1fr;gap:12px;}
-.book-card{background:var(--card);border:1px solid var(--bord2);cursor:pointer;overflow:hidden;transition:border-color .2s;animation:fu .32s ease both;border-radius:4px;}
+.book-card{background:var(--card);border:1px solid var(--bord2);cursor:pointer;overflow:hidden;transition:border-color .2s;animation:fu .32s ease both;border-radius:4px;min-width:0;}
 @keyframes fu{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}
 .book-card:active{opacity:.75;}
 .book-card:hover{border-color:rgba(200,168,74,.25);}
