@@ -1,0 +1,12 @@
+packages:
+  "framer-motion": "For smooth sheet overlays and animations"
+  "lucide-react": "For icons"
+  "clsx": "Utility for conditional classes"
+  "tailwind-merge": "Utility for merging tailwind classes"
+
+images: []
+
+notes:
+  - "The app exactly reproduces the provided HTML/CSS design, using custom CSS classes and variables."
+  - "Image cropping is implemented natively with canvas just like the original HTML to avoid heavy dependencies."
+  - "API hooks are imported from @workspace/api-client-react."

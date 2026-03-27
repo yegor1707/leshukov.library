@@ -1,22 +1,22 @@
 openapi: 3.1.0
 info:
-  # Do not change the title, if the title changes, the import paths will be broken
   title: Api
   version: 0.1.0
-  description: API specification
+  description: Leshukov Library API
 servers:
   - url: /api
     description: Base API path
 tags:
   - name: health
     description: Health operations
+  - name: books
+    description: Book operations
 paths:
   /healthz:
     get:
       operationId: healthCheck
       tags: [health]
       summary: Health check
-      description: Returns server health status
       responses:
         "200":
           description: Healthy
@@ -24,6 +24,145 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/HealthStatus"
+  /books:
+    get:
+      operationId: listBooks
+      tags: [books]
+      summary: List all books
+      parameters:
+        - name: lang
+          in: query
+          schema:
+            type: string
+        - name: search
+          in: query
+          schema:
+            type: string
+      responses:
+        "200":
+          description: List of books
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Book"
+    post:
+      operationId: createBook
+      tags: [books]
+      summary: Add a new book
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateBookInput"
+      responses:
+        "201":
+          description: Created book
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Book"
+  /books/{id}:
+    get:
+      operationId: getBook
+      tags: [books]
+      summary: Get a book by ID
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Book
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Book"
+        "404":
+          description: Not found
+    put:
+      operationId: updateBook
+      tags: [books]
+      summary: Update a book
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateBookInput"
+      responses:
+        "200":
+          description: Updated book
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Book"
+    delete:
+      operationId: deleteBook
+      tags: [books]
+      summary: Delete a book
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "204":
+          description: Deleted
+  /books/{id}/notes:
+    get:
+      operationId: listNotes
+      tags: [books]
+      summary: List notes for a book
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Notes
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Note"
+    post:
+      operationId: addNote
+      tags: [books]
+      summary: Add a note to a book
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateNoteInput"
+      responses:
+        "201":
+          description: Created note
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Note"
 components:
   schemas:
     HealthStatus:
@@ -33,4 +172,120 @@ components:
           type: string
       required:
         - status
-
+    VocabEntry:
+      type: object
+      properties:
+        word:
+          type: string
+        meaning:
+          type: string
+      required:
+        - word
+        - meaning
+    Book:
+      type: object
+      properties:
+        id:
+          type: string
+        title:
+          type: string
+        author:
+          type: string
+        lang:
+          type: string
+        genre:
+          type: string
+        year:
+          type: integer
+          nullable: true
+        rating:
+          type: integer
+          nullable: true
+        synopsis:
+          type: string
+          nullable: true
+        quotes:
+          type: string
+          nullable: true
+        thoughts:
+          type: string
+          nullable: true
+        vocab:
+          type: array
+          items:
+            $ref: "#/components/schemas/VocabEntry"
+        cover:
+          type: string
+          nullable: true
+        createdAt:
+          type: string
+      required:
+        - id
+        - title
+        - author
+        - lang
+        - genre
+        - vocab
+        - createdAt
+    CreateBookInput:
+      type: object
+      properties:
+        title:
+          type: string
+        author:
+          type: string
+        lang:
+          type: string
+        genre:
+          type: string
+        year:
+          type: integer
+          nullable: true
+        rating:
+          type: integer
+          nullable: true
+        synopsis:
+          type: string
+          nullable: true
+        quotes:
+          type: string
+          nullable: true
+        thoughts:
+          type: string
+          nullable: true
+        vocab:
+          type: array
+          items:
+            $ref: "#/components/schemas/VocabEntry"
+        cover:
+          type: string
+          nullable: true
+      required:
+        - title
+        - author
+        - lang
+        - genre
+        - vocab
+    Note:
+      type: object
+      properties:
+        id:
+          type: string
+        bookId:
+          type: string
+        text:
+          type: string
+        createdAt:
+          type: string
+      required:
+        - id
+        - bookId
+        - text
+        - createdAt
+    CreateNoteInput:
+      type: object
+      properties:
+        text:
+          type: string
+      required:
+        - text
