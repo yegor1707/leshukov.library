@@ -212,7 +212,7 @@ h1 em{font-style:italic;color:var(--gold);}
 .sni-cancel{padding:8px;background:transparent;border:1px solid var(--bord2);color:var(--text2);font-family:'Crimson Text',serif;font-size:.82rem;letter-spacing:.1em;text-transform:uppercase;cursor:pointer;}
 .sni-cancel:active{background:rgba(255,255,255,.05);}
 .snm{font-family:'Crimson Text',serif;font-size:.67rem;letter-spacing:.1em;text-transform:uppercase;color:var(--text3);}
-.snt{font-size:.9rem;line-height:1.6;color:var(--text2);word-break:break-word;overflow-wrap:break-word;}
+.snt{font-size:.9rem;line-height:1.6;color:var(--text2);word-break:break-word;overflow-wrap:break-word;white-space:pre-wrap;}
 .vact{padding:12px 18px 18px;display:flex;gap:8px;}
 .vedit{flex:1;padding:10px;background:transparent;border:1px solid var(--border);color:var(--text2);font-family:'Crimson Text',serif;font-size:.8rem;letter-spacing:.11em;text-transform:uppercase;cursor:pointer;}
 .vedit:active{border-color:var(--gold2);color:var(--gold);}
