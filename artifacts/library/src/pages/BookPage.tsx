@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect } from "react";
 import { useLocation } from "wouter";
 import { useGetBook, useListNotes, useAddNote } from "@workspace/api-client-react";
-import { useBookMutations } from "@/hooks/use-books";
+import { useBookMutations, useThoughts, useThoughtMutations } from "@/hooks/use-books";
 import { useAdmin } from "@/hooks/use-admin";
 import { showToast } from "@/components/Toast";
 import { Cropper } from "@/components/Cropper";
@@ -28,11 +28,11 @@ export default function BookPage({ params }: { params: { id: string } }) {
   const { isAdmin } = useAdmin();
   const [activeTab, setActiveTab] = useState('synopsis');
   const [noteText, setNoteText] = useState("");
+  const [thoughtText, setThoughtText] = useState("");
 
   const [editingTab, setEditingTab] = useState<string | null>(null);
   const [editFormOpen, setEditFormOpen] = useState(false);
   const [editSynopsis, setEditSynopsis] = useState("");
-  const [editThoughts, setEditThoughts] = useState("");
   const [editVocab, setEditVocab] = useState<{ id: string; word: string; meaning: string }[]>([]);
   const [editQuotes, setEditQuotes] = useState<{ id: string; text: string }[]>([]);
 
@@ -45,8 +45,10 @@ export default function BookPage({ params }: { params: { id: string } }) {
 
   const { data: book, isLoading, error } = useGetBook(params.id);
   const { data: notes = [] } = useListNotes(params.id);
+  const { data: thoughtItems = [] } = useThoughts(params.id);
   const { deleteBook, isDeleting, updateBook, isUpdating } = useBookMutations();
   const addNoteMutation = useAddNote();
+  const { addThought, isAdding: isAddingThought, removeThought } = useThoughtMutations(params.id);
 
   useEffect(() => {
     if (book) {
@@ -81,7 +83,6 @@ export default function BookPage({ params }: { params: { id: string } }) {
     if (!book) return;
     setEditingTab(tab);
     if (tab === 'synopsis') setEditSynopsis(book.synopsis || '');
-    if (tab === 'thoughts') setEditThoughts(book.thoughts || '');
     if (tab === 'vocab') setEditVocab(book.vocab?.map(v => ({ id: Math.random().toString(), ...v })) || []);
     if (tab === 'quotes') {
       const lines = (book.quotes || '').split('\n').filter(l => l.trim());
@@ -112,12 +113,22 @@ export default function BookPage({ params }: { params: { id: string } }) {
     try {
       const base = buildBase();
       if (tab === 'synopsis') base.synopsis = editSynopsis.trim();
-      if (tab === 'thoughts') base.thoughts = editThoughts.trim();
       if (tab === 'vocab') base.vocab = editVocab.filter(v => v.word.trim()).map(v => ({ word: v.word.trim(), meaning: v.meaning.trim() }));
       if (tab === 'quotes') base.quotes = editQuotes.filter(q => q.text.trim()).map(q => q.text.trim()).join('\n');
       await updateBook({ id: book.id, data: base });
       showToast('Сохранено');
       setEditingTab(null);
+    } catch {
+      showToast('Ошибка сохранения');
+    }
+  };
+
+  const handleSaveThought = async () => {
+    if (!thoughtText.trim()) return;
+    try {
+      await addThought(thoughtText.trim());
+      setThoughtText('');
+      showToast('Мысль сохранена');
     } catch {
       showToast('Ошибка сохранения');
     }

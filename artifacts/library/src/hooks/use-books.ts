@@ -1,4 +1,4 @@
-import { useQueryClient } from "@tanstack/react-query";
+import { useQueryClient, useQuery, useMutation } from "@tanstack/react-query";
 import { 
   useListBooks, 
   useCreateBook, 
@@ -9,6 +9,52 @@ import {
   getListBooksQueryKey,
   getListNotesQueryKey
 } from "@workspace/api-client-react";
+
+type ThoughtItem = { id: string; bookId: string; text: string; createdAt: string };
+
+export function useThoughts(bookId: string) {
+  return useQuery<ThoughtItem[]>({
+    queryKey: [`/api/books/${bookId}/thoughts`],
+    queryFn: async () => {
+      const res = await fetch(`/api/books/${bookId}/thoughts`);
+      if (!res.ok) throw new Error("Failed to fetch thoughts");
+      return res.json();
+    },
+  });
+}
+
+export function useThoughtMutations(bookId: string) {
+  const queryClient = useQueryClient();
+  const key = [`/api/books/${bookId}/thoughts`];
+
+  const add = useMutation({
+    mutationFn: async (text: string) => {
+      const res = await fetch(`/api/books/${bookId}/thoughts`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ text }),
+      });
+      if (!res.ok) throw new Error("Failed to add thought");
+      return res.json();
+    },
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: key }),
+  });
+
+  const remove = useMutation({
+    mutationFn: async (thoughtId: string) => {
+      const res = await fetch(`/api/books/${bookId}/thoughts/${thoughtId}`, { method: "DELETE" });
+      if (!res.ok) throw new Error("Failed to delete thought");
+    },
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: key }),
+  });
+
+  return {
+    addThought: add.mutateAsync,
+    isAdding: add.isPending,
+    removeThought: remove.mutateAsync,
+    isRemoving: remove.isPending,
+  };
+}
 
 export function useBooksData(lang?: string, search?: string) {
   return useListBooks({ 

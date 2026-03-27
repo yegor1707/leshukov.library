@@ -1,5 +1,5 @@
 import { Router, type IRouter } from "express";
-import { db, booksTable, notesTable } from "@workspace/db";
+import { db, booksTable, notesTable, thoughtItemsTable } from "@workspace/db";
 import { eq } from "drizzle-orm";
 import { z } from "zod";
 
@@ -140,7 +140,7 @@ router.put("/:id", async (req, res) => {
         thoughts: data.thoughts ?? null,
         vocab: data.vocab,
         cover: data.cover ?? null,
-        coverLandscape: data.coverLandscape ?? null,
+        ...(data.coverLandscape !== undefined ? { coverLandscape: data.coverLandscape } : {}),
       })
       .where(eq(booksTable.id, req.params.id))
       .returning();
@@ -209,6 +209,58 @@ router.post("/:id/notes", async (req, res) => {
     });
   } catch (err) {
     req.log.error({ err }, "Failed to add note");
+    res.status(500).json({ error: "Internal server error" });
+  }
+});
+
+router.get("/:id/thoughts", async (req, res) => {
+  try {
+    const items = await db
+      .select()
+      .from(thoughtItemsTable)
+      .where(eq(thoughtItemsTable.bookId, req.params.id))
+      .orderBy(thoughtItemsTable.createdAt);
+    res.json(items.map((t) => ({
+      id: t.id,
+      bookId: t.bookId,
+      text: t.text,
+      createdAt: t.createdAt instanceof Date ? t.createdAt.toISOString() : t.createdAt,
+    })));
+  } catch (err) {
+    req.log.error({ err }, "Failed to list thoughts");
+    res.status(500).json({ error: "Internal server error" });
+  }
+});
+
+router.post("/:id/thoughts", async (req, res) => {
+  try {
+    const { text } = req.body;
+    if (!text || typeof text !== "string") {
+      res.status(400).json({ error: "text required" });
+      return;
+    }
+    const [item] = await db
+      .insert(thoughtItemsTable)
+      .values({ id: gid(), bookId: req.params.id, text })
+      .returning();
+    res.status(201).json({
+      id: item.id,
+      bookId: item.bookId,
+      text: item.text,
+      createdAt: item.createdAt instanceof Date ? item.createdAt.toISOString() : item.createdAt,
+    });
+  } catch (err) {
+    req.log.error({ err }, "Failed to add thought");
+    res.status(500).json({ error: "Internal server error" });
+  }
+});
+
+router.delete("/:id/thoughts/:thoughtId", async (req, res) => {
+  try {
+    await db.delete(thoughtItemsTable).where(eq(thoughtItemsTable.id, req.params.thoughtId));
+    res.status(204).send();
+  } catch (err) {
+    req.log.error({ err }, "Failed to delete thought");
     res.status(500).json({ error: "Internal server error" });
   }
 });

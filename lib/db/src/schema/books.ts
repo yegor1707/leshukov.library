@@ -31,6 +31,13 @@ export const notesTable = pgTable("notes", {
   createdAt: timestamp("created_at").notNull().defaultNow(),
 });
 
+export const thoughtItemsTable = pgTable("thought_items", {
+  id: text("id").primaryKey(),
+  bookId: text("book_id").notNull().references(() => booksTable.id, { onDelete: "cascade" }),
+  text: text("text").notNull(),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+});
+
 export const insertBookSchema = createInsertSchema(booksTable).omit({ createdAt: true });
 export type InsertBook = z.infer<typeof insertBookSchema>;
 export type Book = typeof booksTable.$inferSelect;
