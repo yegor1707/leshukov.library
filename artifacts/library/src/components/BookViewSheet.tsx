@@ -122,8 +122,8 @@ export function BookViewSheet({ book, isOpen, onClose, onEdit, isAdmin }: BookVi
         <div className={`vp ${activeTab === 'quotes' ? 'active' : ''}`}>
           {book.quotes && book.quotes.trim() ? (
             <div className="qwrap">
-              {book.quotes.split('\n').filter(l => l.trim()).map((l, i) => (
-                <div key={i} className="qitem">{l}</div>
+              {book.quotes.split('\n\n').filter(l => l.trim()).map((l, i) => (
+                <div key={i} className="qitem" style={{ whiteSpace: 'pre-line' }}>{l}</div>
               ))}
             </div>
           ) : (

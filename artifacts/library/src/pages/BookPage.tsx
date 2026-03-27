@@ -70,7 +70,7 @@ export default function BookPage({ params }: { params: { id: string } }) {
     if (tab === 'synopsis') setEditSynopsis(book.synopsis || '');
     if (tab === 'vocab') setEditVocab(book.vocab?.map(v => ({ id: Math.random().toString(), ...v })) || []);
     if (tab === 'quotes') {
-      const lines = (book.quotes || '').split('\n').filter(l => l.trim());
+      const lines = (book.quotes || '').split('\n\n').filter(l => l.trim());
       setEditQuotes(lines.map(l => ({ id: Math.random().toString(), text: l })));
     }
   };
@@ -99,7 +99,7 @@ export default function BookPage({ params }: { params: { id: string } }) {
       const base = buildBase();
       if (tab === 'synopsis') base.synopsis = editSynopsis.trim();
       if (tab === 'vocab') base.vocab = editVocab.filter(v => v.word.trim()).map(v => ({ word: v.word.trim(), meaning: v.meaning.trim() }));
-      if (tab === 'quotes') base.quotes = editQuotes.filter(q => q.text.trim()).map(q => q.text.trim()).join('\n');
+      if (tab === 'quotes') base.quotes = editQuotes.filter(q => q.text.trim()).map(q => q.text.trim()).join('\n\n');
       await updateBook({ id: book.id, data: base });
       showToast('Сохранено');
       setEditingTab(null);
@@ -378,8 +378,8 @@ export default function BookPage({ params }: { params: { id: string } }) {
                   <>
                     {book.quotes?.trim() ? (
                       <div className="qwrap">
-                        {book.quotes.split('\n').filter(l => l.trim()).map((l, i) => (
-                          <div key={i} className="qitem">{l}</div>
+                        {book.quotes.split('\n\n').filter(l => l.trim()).map((l, i) => (
+                          <div key={i} className="qitem" style={{ whiteSpace: 'pre-line' }}>{l}</div>
                         ))}
                       </div>
                     ) : (
