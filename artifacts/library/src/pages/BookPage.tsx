@@ -16,7 +16,7 @@ function Stars({ r }: { r: number }) {
   return (
     <span>
       {Array.from({ length: 5 }).map((_, i) => (
-        <span key={i} style={{ color: i < r ? 'var(--gold)' : 'rgba(200,168,74,.2)', fontSize: '1rem' }}>★</span>
+        <span key={i} style={{ color: i < r ? 'var(--gold)' : 'rgba(200,168,74,.2)', fontSize: '1.1rem' }}>★</span>
       ))}
     </span>
   );
@@ -88,22 +88,24 @@ export default function BookPage({ params }: { params: { id: string } }) {
 
   const cancelEdit = () => setEditingTab(null);
 
+  const buildBase = () => ({
+    title: book!.title,
+    author: book!.author,
+    lang: book!.lang,
+    genre: book!.genre || '',
+    year: book!.year ?? null,
+    rating: book!.rating || 0,
+    synopsis: book!.synopsis || '',
+    quotes: book!.quotes || '',
+    thoughts: book!.thoughts || '',
+    vocab: book!.vocab || [],
+    cover: book!.cover || null,
+  });
+
   const saveTab = async (tab: string) => {
     if (!book) return;
     try {
-      const base = {
-        title: book.title,
-        author: book.author,
-        lang: book.lang,
-        genre: book.genre || '',
-        year: book.year ?? null,
-        rating: book.rating || 0,
-        synopsis: book.synopsis || '',
-        quotes: book.quotes || '',
-        thoughts: book.thoughts || '',
-        vocab: book.vocab || [],
-        cover: book.cover || null,
-      };
+      const base = buildBase();
       if (tab === 'synopsis') base.synopsis = editSynopsis.trim();
       if (tab === 'thoughts') base.thoughts = editThoughts.trim();
       if (tab === 'vocab') base.vocab = editVocab.filter(v => v.word.trim()).map(v => ({ word: v.word.trim(), meaning: v.meaning.trim() }));
@@ -119,22 +121,9 @@ export default function BookPage({ params }: { params: { id: string } }) {
   const saveCover = async () => {
     if (!book) return;
     try {
-      await updateBook({
-        id: book.id,
-        data: {
-          title: book.title,
-          author: book.author,
-          lang: book.lang,
-          genre: book.genre || '',
-          year: book.year ?? null,
-          rating: book.rating || 0,
-          synopsis: book.synopsis || '',
-          quotes: book.quotes || '',
-          thoughts: book.thoughts || '',
-          vocab: book.vocab || [],
-          cover: coverBase64,
-        }
-      });
+      const base = buildBase();
+      base.cover = coverBase64;
+      await updateBook({ id: book.id, data: base });
       showToast('Обложка сохранена');
       setCoverChanged(false);
     } catch {
@@ -189,72 +178,93 @@ export default function BookPage({ params }: { params: { id: string } }) {
     { id: 'thoughts', label: 'Мысли' },
     { id: 'notes', label: 'Заметки' },
   ];
-
   const tabs = isAdmin ? [{ id: 'photo', label: 'Фото' }, ...baseTabs] : baseTabs;
+
+  const displayCover = coverChanged ? coverBase64 : (book.cover || null);
 
   return (
     <>
-      <div className="book-landscape">
+      <div style={{ minHeight: '100vh', background: 'var(--bg)', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+        <div style={{ width: '100%', maxWidth: '480px', position: 'relative' }}>
 
-        {/* Left column — sticky cover */}
-        <div className="book-left">
-          <div className="book-cover-panel">
-            {(coverBase64 || book.cover) ? (
-              <img
-                src={coverBase64 || book.cover || ''}
-                alt={book.title}
-                style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
-              />
+          {/* Hero — album/landscape image with gradient fade */}
+          <div style={{ width: '100%', position: 'relative', overflow: 'hidden', background: 'linear-gradient(140deg,#0c1f0f,#060e07)' }}>
+            {displayCover ? (
+              <div style={{ position: 'relative' }}>
+                <img
+                  src={displayCover}
+                  alt={book.title}
+                  style={{
+                    width: '100%',
+                    height: '260px',
+                    objectFit: 'cover',
+                    objectPosition: 'center top',
+                    display: 'block',
+                    filter: 'brightness(0.82)',
+                  }}
+                />
+                <div style={{
+                  position: 'absolute', inset: 0,
+                  background: 'linear-gradient(to bottom, rgba(13,28,17,.15) 0%, transparent 35%, var(--bg) 100%)',
+                }} />
+              </div>
             ) : (
               <div style={{
-                width: '100%', height: '100%', display: 'flex', flexDirection: 'column',
-                alignItems: 'center', justifyContent: 'center',
-                background: 'linear-gradient(140deg,#0c1f0f,#060e07)', position: 'relative',
+                height: '200px', display: 'flex', flexDirection: 'column', alignItems: 'center',
+                justifyContent: 'center', position: 'relative',
+                background: 'linear-gradient(140deg,#0c1f0f,#060e07)',
               }}>
                 <div style={{ position: 'absolute', inset: 0, opacity: .06, backgroundImage: 'repeating-linear-gradient(-42deg,transparent 0,transparent 12px,rgba(200,168,74,.6) 12px,rgba(200,168,74,.6) 13px)' }} />
-                <span style={{ fontSize: '2rem', opacity: .12, position: 'relative' }}>📚</span>
+                <span style={{ fontSize: '3rem', opacity: .12, position: 'relative' }}>📚</span>
               </div>
             )}
+
+            {/* Back button */}
+            <button
+              onClick={() => navigate('/')}
+              style={{
+                position: 'absolute', top: '14px', left: '14px', zIndex: 10,
+                background: 'rgba(13,28,17,.8)', border: '1px solid rgba(200,168,74,.2)',
+                color: 'var(--ivory2)', padding: '7px 13px', cursor: 'pointer',
+                fontFamily: "'Crimson Text', serif", fontSize: '.78rem', letterSpacing: '.12em',
+                textTransform: 'uppercase', backdropFilter: 'blur(6px)', borderRadius: '2px',
+                display: 'flex', alignItems: 'center', gap: '6px',
+              }}
+            >
+              ← Библиотека
+            </button>
           </div>
-        </div>
 
-        {/* Right column — scrollable content */}
-        <div className="book-right">
-
-          {/* Top bar */}
-          <div className="book-topbar">
-            <button className="book-back" onClick={() => navigate('/')}>← Библиотека</button>
-            {isAdmin && (
-              <button className="vdelbtn" style={{ fontSize: '.7rem', padding: '5px 9px' }} onClick={handleDelete} disabled={isDeleting}>
-                Удалить
-              </button>
-            )}
-          </div>
-
-          {/* Book info */}
-          <div style={{ padding: '12px 14px 6px' }}>
-            <div style={{ display: 'inline-block', fontFamily: "'Crimson Text', serif", fontSize: '.58rem', letterSpacing: '.2em', textTransform: 'uppercase', padding: '2px 6px', border: '1px solid rgba(200,168,74,.22)', color: 'var(--gold2)', marginBottom: '7px' }}>
+          {/* Info block */}
+          <div style={{ padding: '0 20px 0', marginTop: displayCover ? '-32px' : '0', position: 'relative', zIndex: 1 }}>
+            <div style={{ display: 'inline-block', fontFamily: "'Crimson Text', serif", fontSize: '.65rem', letterSpacing: '.2em', textTransform: 'uppercase', padding: '2px 8px', border: '1px solid rgba(200,168,74,.22)', color: 'var(--gold2)', marginBottom: '10px' }}>
               {LL_FULL[book.lang] || book.lang}
             </div>
-            <h1 style={{ fontFamily: "'Playfair Display', serif", fontSize: 'clamp(1rem, 3.5vw, 1.45rem)', color: 'var(--ivory)', fontWeight: 900, lineHeight: 1.15, marginBottom: '3px' }}>
+            <h1 style={{ fontFamily: "'Playfair Display', serif", fontSize: 'clamp(1.5rem, 5vw, 2.2rem)', color: 'var(--ivory)', fontWeight: 900, lineHeight: 1.1, marginBottom: '6px' }}>
               {book.title}
             </h1>
-            <p style={{ fontFamily: "'IM Fell English', serif", fontSize: '.82rem', color: 'var(--text2)', fontStyle: 'italic', marginBottom: '7px' }}>
+            <p style={{ fontFamily: "'IM Fell English', serif", fontSize: '1rem', color: 'var(--text2)', fontStyle: 'italic', marginBottom: '12px' }}>
               {book.author}
             </p>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap', marginBottom: '20px' }}>
               {book.rating ? <Stars r={book.rating} /> : null}
-              {book.year ? <span style={{ fontFamily: "'Crimson Text', serif", fontSize: '.75rem', color: 'var(--text3)' }}>{book.year}</span> : null}
+              {book.year ? <span style={{ fontFamily: "'Crimson Text', serif", fontSize: '.82rem', color: 'var(--text3)' }}>{book.year}</span> : null}
               {book.genre ? (
-                <span style={{ fontFamily: "'Crimson Text', serif", fontSize: '.58rem', letterSpacing: '.12em', textTransform: 'uppercase', padding: '2px 5px', border: '1px solid var(--bord2)', color: 'var(--text3)' }}>
+                <span style={{ fontFamily: "'Crimson Text', serif", fontSize: '.65rem', letterSpacing: '.12em', textTransform: 'uppercase', padding: '2px 6px', border: '1px solid var(--bord2)', color: 'var(--text3)' }}>
                   {book.genre}
                 </span>
               ) : null}
             </div>
+
+            {isAdmin && (
+              <div style={{ display: 'flex', gap: '8px', marginBottom: '20px' }}>
+                <button className="vdelbtn" onClick={handleDelete} disabled={isDeleting}>Удалить книгу</button>
+              </div>
+            )}
           </div>
 
           {/* Tabs */}
-          <div className="vtabs" style={{ borderTop: '1px solid var(--border)', marginTop: '8px' }}>
+          <div className="vtabs" style={{ borderTop: '1px solid var(--border)' }}>
             {tabs.map(t => (
               <button
                 key={t.id}
@@ -267,7 +277,7 @@ export default function BookPage({ params }: { params: { id: string } }) {
           </div>
 
           {/* Tab content */}
-          <div style={{ padding: '14px', minHeight: '180px' }}>
+          <div style={{ padding: '20px', minHeight: '220px' }}>
 
             {/* PHOTO TAB */}
             {activeTab === 'photo' && isAdmin && (
@@ -275,15 +285,15 @@ export default function BookPage({ params }: { params: { id: string } }) {
                 <button
                   type="button"
                   onClick={() => fileInputRef.current?.click()}
-                  style={{ padding: '9px 10px', background: 'transparent', border: '1px solid var(--border)', color: 'var(--text2)', fontFamily: "'Crimson Text', serif", fontSize: '.76rem', letterSpacing: '.1em', textTransform: 'uppercase', cursor: 'pointer', textAlign: 'left' }}
+                  style={{ padding: '10px', background: 'transparent', border: '1px solid var(--border)', color: 'var(--text2)', fontFamily: "'Crimson Text', serif", fontSize: '.76rem', letterSpacing: '.1em', textTransform: 'uppercase', cursor: 'pointer', textAlign: 'left' }}
                 >
-                  📷 Загрузить фото
+                  📷 Загрузить новое фото
                 </button>
                 {(coverBase64 || coverOrigSrc) && (
                   <button
                     type="button"
                     onClick={() => setCropOrigSrc(coverOrigSrc || coverBase64)}
-                    style={{ padding: '9px 10px', background: 'transparent', border: '1px solid var(--gold2)', color: 'var(--gold)', fontFamily: "'Crimson Text', serif", fontSize: '.76rem', letterSpacing: '.1em', textTransform: 'uppercase', cursor: 'pointer', textAlign: 'left' }}
+                    style={{ padding: '10px', background: 'transparent', border: '1px solid var(--gold2)', color: 'var(--gold)', fontFamily: "'Crimson Text', serif", fontSize: '.76rem', letterSpacing: '.1em', textTransform: 'uppercase', cursor: 'pointer', textAlign: 'left' }}
                   >
                     ✂ Перекадрировать
                   </button>
@@ -292,13 +302,13 @@ export default function BookPage({ params }: { params: { id: string } }) {
                   <button
                     type="button"
                     onClick={() => { setCoverBase64(null); setCoverOrigSrc(null); setCoverChanged(true); }}
-                    style={{ padding: '9px 10px', background: 'transparent', border: '1px solid rgba(122,53,32,.3)', color: 'rgba(160,80,55,.8)', fontFamily: "'Crimson Text', serif", fontSize: '.76rem', letterSpacing: '.1em', textTransform: 'uppercase', cursor: 'pointer', textAlign: 'left' }}
+                    style={{ padding: '10px', background: 'transparent', border: '1px solid rgba(122,53,32,.3)', color: 'rgba(160,80,55,.8)', fontFamily: "'Crimson Text', serif", fontSize: '.76rem', letterSpacing: '.1em', textTransform: 'uppercase', cursor: 'pointer', textAlign: 'left' }}
                   >
                     ✕ Удалить обложку
                   </button>
                 )}
-                {(coverChanged || coverBase64 !== (book.cover || null)) && (
-                  <button className="sbtn" style={{ margin: 0, fontSize: '.78rem' }} onClick={saveCover} disabled={isUpdating}>
+                {coverChanged && (
+                  <button className="sbtn" style={{ margin: 0, marginTop: '4px' }} onClick={saveCover} disabled={isUpdating}>
                     {isUpdating ? 'Сохранение…' : 'Сохранить обложку'}
                   </button>
                 )}
@@ -328,7 +338,7 @@ export default function BookPage({ params }: { params: { id: string } }) {
                 ) : (
                   <>
                     {book.synopsis?.trim() ? (
-                      <div className="syn-body" style={{ fontSize: '1rem' }}>{book.synopsis}</div>
+                      <div className="syn-body" style={{ fontSize: '1.05rem' }}>{book.synopsis}</div>
                     ) : (
                       <div className="sec-empty">Синопсис не добавлен</div>
                     )}
@@ -502,7 +512,7 @@ export default function BookPage({ params }: { params: { id: string } }) {
             )}
           </div>
 
-          <div style={{ height: '40px' }} />
+          <div style={{ height: '60px' }} />
         </div>
       </div>
 

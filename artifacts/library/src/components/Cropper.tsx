@@ -17,6 +17,7 @@ export function Cropper({ imageSrc, onApply, onCancel }: CropperProps) {
   const [orient, setOrient] = useState<Orient>('portrait');
   const frameRef = useRef<HTMLDivElement>(null);
   const imgRef = useRef<HTMLImageElement>(null);
+  const overlayRef = useRef<HTMLDivElement>(null);
 
   const stateRef = useRef({
     offX: 0,
@@ -66,6 +67,7 @@ export function Cropper({ imageSrc, onApply, onCancel }: CropperProps) {
 
     stateRef.current = { offX: newOffX, offY: newOffY, imgNW: nw, imgNH: nh, scale, userZoom, loaded: true };
     forceUpdate(n => n + 1);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const onImageLoad = (e: React.SyntheticEvent<HTMLImageElement>) => {
@@ -73,11 +75,21 @@ export function Cropper({ imageSrc, onApply, onCancel }: CropperProps) {
     applyLayout(t.naturalWidth, t.naturalHeight, orient, 1, 0, 0, true);
   };
 
+  // Zoom centered on the visible center of the frame
   const zoom = (delta: number) => {
     const s = stateRef.current;
     if (!s.loaded) return;
     const newZoom = Math.max(1, Math.min(4, s.userZoom + delta));
-    applyLayout(s.imgNW, s.imgNH, orient, newZoom, s.offX, s.offY);
+    const { fw, fh } = getFrameSize(orient);
+    // Keep the center of the visible area fixed during zoom
+    const oldScale = s.scale;
+    const baseScale = Math.max(fw / s.imgNW, fh / s.imgNH);
+    const newScale = baseScale * newZoom;
+    const centerOrigX = (s.offX + fw / 2) / oldScale;
+    const centerOrigY = (s.offY + fh / 2) / oldScale;
+    const newOffX = centerOrigX * newScale - fw / 2;
+    const newOffY = centerOrigY * newScale - fh / 2;
+    applyLayout(s.imgNW, s.imgNH, orient, newZoom, newOffX, newOffY);
   };
 
   const handleWheel = (e: React.WheelEvent) => {
@@ -97,14 +109,20 @@ export function Cropper({ imageSrc, onApply, onCancel }: CropperProps) {
   };
 
   const handleStart = (e: React.MouseEvent | React.TouchEvent) => {
-    if ('touches' in e && e.touches.length === 2) return; // handled by touchstart below
+    if ('touches' in e && e.touches.length === 2) return;
     const p = getXY(e);
     dragRef.current = { x: p.x, y: p.y, ox: stateRef.current.offX, oy: stateRef.current.offY };
   };
 
   useEffect(() => {
     const frame = frameRef.current;
-    if (!frame) return;
+    const overlay = overlayRef.current;
+    if (!frame || !overlay) return;
+
+    // Prevent ALL default touch behaviour on the overlay to block browser pinch-zoom
+    const blockDefault = (e: TouchEvent) => {
+      if (e.touches.length >= 2) e.preventDefault();
+    };
 
     const handleTouchStart = (e: TouchEvent) => {
       if (e.touches.length === 2) {
@@ -123,7 +141,20 @@ export function Cropper({ imageSrc, onApply, onCancel }: CropperProps) {
         const ratio = newDist / pinchRef.current.dist;
         const s = stateRef.current;
         const newZoom = Math.max(1, Math.min(4, pinchRef.current.zoom * ratio));
-        applyLayout(s.imgNW, s.imgNH, orient, newZoom, s.offX, s.offY);
+        // Keep pinch midpoint fixed
+        const { fw, fh } = getFrameSize(orient);
+        const baseScale = Math.max(fw / s.imgNW, fh / s.imgNH);
+        const newScale = baseScale * newZoom;
+        const midX = (e.touches[0].clientX + e.touches[1].clientX) / 2;
+        const midY = (e.touches[0].clientY + e.touches[1].clientY) / 2;
+        const rect = frameRef.current.getBoundingClientRect();
+        const pivotX = midX - rect.left;
+        const pivotY = midY - rect.top;
+        const origPivotX = (s.offX + pivotX) / s.scale;
+        const origPivotY = (s.offY + pivotY) / s.scale;
+        const newOffX = origPivotX * newScale - pivotX;
+        const newOffY = origPivotY * newScale - pivotY;
+        applyLayout(s.imgNW, s.imgNH, orient, newZoom, newOffX, newOffY);
         return;
       }
 
@@ -145,6 +176,7 @@ export function Cropper({ imageSrc, onApply, onCancel }: CropperProps) {
       pinchRef.current = null;
     };
 
+    overlay.addEventListener('touchstart', blockDefault, { passive: false });
     frame.addEventListener('touchstart', handleTouchStart, { passive: false });
     document.addEventListener('mousemove', handleMove);
     document.addEventListener('touchmove', handleMove, { passive: false });
@@ -152,6 +184,7 @@ export function Cropper({ imageSrc, onApply, onCancel }: CropperProps) {
     document.addEventListener('touchend', handleEnd);
 
     return () => {
+      overlay.removeEventListener('touchstart', blockDefault);
       frame.removeEventListener('touchstart', handleTouchStart);
       document.removeEventListener('mousemove', handleMove);
       document.removeEventListener('touchmove', handleMove);
@@ -188,10 +221,14 @@ export function Cropper({ imageSrc, onApply, onCancel }: CropperProps) {
   const currentZoom = stateRef.current.userZoom;
 
   return (
-    <div className="crop-ov">
+    <div
+      className="crop-ov"
+      ref={overlayRef}
+      style={{ touchAction: 'none' }}
+    >
       <div className="crop-top">
         <h3>Выберите область обложки</h3>
-        <p>Перетащите или используйте щипок для масштаба</p>
+        <p>Перетащите или щипком масштабируйте</p>
       </div>
 
       <div className="crop-orient" style={{ maxWidth: '320px' }}>
@@ -221,30 +258,50 @@ export function Cropper({ imageSrc, onApply, onCancel }: CropperProps) {
         />
       </div>
 
+      {/* Zoom controls */}
       <div style={{ display: 'flex', gap: '8px', marginTop: '10px', width: '100%', maxWidth: '320px', alignItems: 'center', justifyContent: 'center' }}>
         <button
-          onClick={() => zoom(-0.2)}
+          onPointerDown={e => { e.preventDefault(); zoom(-0.2); }}
           disabled={currentZoom <= 1}
           style={{
-            width: '38px', height: '38px', background: 'transparent',
+            width: '44px', height: '44px', background: 'transparent',
             border: '1px solid var(--border)', color: 'var(--text2)',
-            fontSize: '1.2rem', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center',
-            opacity: currentZoom <= 1 ? 0.3 : 1,
-            fontFamily: 'monospace'
+            fontSize: '1.4rem', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center',
+            opacity: currentZoom <= 1 ? 0.3 : 1, fontFamily: 'monospace', flexShrink: 0,
+            touchAction: 'manipulation',
           }}
         >−</button>
-        <span style={{ fontFamily: "'Crimson Text', serif", fontSize: '.8rem', color: 'var(--text3)', minWidth: '48px', textAlign: 'center', letterSpacing: '.05em' }}>
-          {Math.round(currentZoom * 100)}%
-        </span>
+        <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '4px' }}>
+          <input
+            type="range"
+            min={100} max={400} step={5}
+            value={Math.round(currentZoom * 100)}
+            onChange={e => {
+              const target = Number(e.target.value) / 100;
+              const s = stateRef.current;
+              if (!s.loaded) return;
+              const { fw, fh } = getFrameSize(orient);
+              const baseScale = Math.max(fw / s.imgNW, fh / s.imgNH);
+              const newScale = baseScale * target;
+              const centerOrigX = (s.offX + fw / 2) / s.scale;
+              const centerOrigY = (s.offY + fh / 2) / s.scale;
+              applyLayout(s.imgNW, s.imgNH, orient, target, centerOrigX * newScale - fw / 2, centerOrigY * newScale - fh / 2);
+            }}
+            style={{ width: '100%', accentColor: 'var(--gold)', cursor: 'pointer', touchAction: 'none' }}
+          />
+          <span style={{ fontFamily: "'Crimson Text', serif", fontSize: '.78rem', color: 'var(--text3)', letterSpacing: '.05em' }}>
+            {Math.round(currentZoom * 100)}%
+          </span>
+        </div>
         <button
-          onClick={() => zoom(0.2)}
+          onPointerDown={e => { e.preventDefault(); zoom(0.2); }}
           disabled={currentZoom >= 4}
           style={{
-            width: '38px', height: '38px', background: 'transparent',
+            width: '44px', height: '44px', background: 'transparent',
             border: '1px solid var(--border)', color: 'var(--text2)',
-            fontSize: '1.2rem', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center',
-            opacity: currentZoom >= 4 ? 0.3 : 1,
-            fontFamily: 'monospace'
+            fontSize: '1.4rem', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center',
+            opacity: currentZoom >= 4 ? 0.3 : 1, fontFamily: 'monospace', flexShrink: 0,
+            touchAction: 'manipulation',
           }}
         >+</button>
       </div>
