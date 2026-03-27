@@ -118,8 +118,33 @@ export function useBookNoteMutations(bookId: string) {
     }
   });
 
+  const update = useMutation({
+    mutationFn: async ({ noteId, text }: { noteId: string; text: string }) => {
+      const res = await fetch(`/api/books/${bookId}/notes/${noteId}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ text }),
+      });
+      if (!res.ok) throw new Error("Failed to update note");
+      return res.json();
+    },
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: getListNotesQueryKey(bookId) }),
+  });
+
+  const remove = useMutation({
+    mutationFn: async (noteId: string) => {
+      const res = await fetch(`/api/books/${bookId}/notes/${noteId}`, { method: "DELETE" });
+      if (!res.ok) throw new Error("Failed to delete note");
+    },
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: getListNotesQueryKey(bookId) }),
+  });
+
   return {
     addNote: add.mutateAsync,
-    isAddingNote: add.isPending
+    isAddingNote: add.isPending,
+    updateNote: update.mutateAsync,
+    isUpdatingNote: update.isPending,
+    deleteNote: remove.mutateAsync,
+    isDeletingNote: remove.isPending,
   };
 }

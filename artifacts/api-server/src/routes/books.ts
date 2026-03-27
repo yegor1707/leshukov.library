@@ -239,6 +239,27 @@ router.post("/:id/notes", async (req, res) => {
   }
 });
 
+router.put("/:id/notes/:noteId", async (req, res) => {
+  try {
+    const { text } = req.body;
+    if (!text || typeof text !== "string") {
+      res.status(400).json({ error: "text required" });
+      return;
+    }
+    const { data: note, error } = await supabase
+      .from("notes")
+      .update({ text })
+      .eq("id", req.params.noteId)
+      .select()
+      .single();
+    if (error) throw error;
+    res.json(formatNote(note));
+  } catch (err) {
+    req.log.error({ err }, "Failed to update note");
+    res.status(500).json({ error: "Internal server error" });
+  }
+});
+
 router.delete("/:id/notes/:noteId", async (req, res) => {
   try {
     const { error } = await supabase

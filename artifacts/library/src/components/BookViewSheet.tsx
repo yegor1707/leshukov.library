@@ -20,10 +20,12 @@ const LL_FULL: Record<string, string> = {
 export function BookViewSheet({ book, isOpen, onClose, onEdit, isAdmin }: BookViewSheetProps) {
   const [activeTab, setActiveTab] = useState('synopsis');
   const [sonNoteText, setSonNoteText] = useState("");
+  const [editingNoteId, setEditingNoteId] = useState<string | null>(null);
+  const [editingNoteText, setEditingNoteText] = useState("");
   
   const { deleteBook, isDeleting } = useBookMutations();
   const { data: notes = [] } = useBookNotes(book?.id || "");
-  const { addNote, isAddingNote } = useBookNoteMutations(book?.id || "");
+  const { addNote, isAddingNote, updateNote, isUpdatingNote, deleteNote } = useBookNoteMutations(book?.id || "");
 
   if (!book) return null;
 
@@ -46,6 +48,38 @@ export function BookViewSheet({ book, isOpen, onClose, onEdit, isAdmin }: BookVi
       showToast("Заметка сохранена");
     } catch {
       showToast("Ошибка сохранения");
+    }
+  };
+
+  const handleStartEdit = (noteId: string, text: string) => {
+    setEditingNoteId(noteId);
+    setEditingNoteText(text);
+  };
+
+  const handleCancelEdit = () => {
+    setEditingNoteId(null);
+    setEditingNoteText("");
+  };
+
+  const handleSaveEdit = async (noteId: string) => {
+    if (!editingNoteText.trim()) return;
+    try {
+      await updateNote({ noteId, text: editingNoteText.trim() });
+      setEditingNoteId(null);
+      setEditingNoteText("");
+      showToast("Заметка обновлена");
+    } catch {
+      showToast("Ошибка сохранения");
+    }
+  };
+
+  const handleDeleteNote = async (noteId: string) => {
+    if (!window.confirm("Удалить заметку?")) return;
+    try {
+      await deleteNote(noteId);
+      showToast("Заметка удалена");
+    } catch {
+      showToast("Ошибка удаления");
     }
   };
 
@@ -156,8 +190,35 @@ export function BookViewSheet({ book, isOpen, onClose, onEdit, isAdmin }: BookVi
             {notes.length > 0 ? (
               notes.map(n => (
                 <div key={n.id} className="sni">
-                  <div className="snm">{new Date(n.createdAt).toLocaleDateString('ru-RU', {day:'numeric',month:'long',year:'numeric'})}</div>
-                  <div className="snt">{n.text}</div>
+                  <div className="sni-header">
+                    <div className="snm">{new Date(n.createdAt).toLocaleDateString('ru-RU', {day:'numeric',month:'long',year:'numeric'})}</div>
+                    <div className="sni-actions">
+                      {editingNoteId !== n.id && (
+                        <>
+                          <button className="sni-btn" onClick={() => handleStartEdit(n.id, n.text)}>✎</button>
+                          <button className="sni-btn sni-del" onClick={() => handleDeleteNote(n.id)}>✕</button>
+                        </>
+                      )}
+                    </div>
+                  </div>
+                  {editingNoteId === n.id ? (
+                    <div className="sni-edit">
+                      <textarea
+                        className="sn-area"
+                        value={editingNoteText}
+                        onChange={e => setEditingNoteText(e.target.value)}
+                        style={{marginTop:'6px'}}
+                      />
+                      <div className="sni-edit-btns">
+                        <button className="sn-save" onClick={() => handleSaveEdit(n.id)} disabled={isUpdatingNote}>
+                          {isUpdatingNote ? 'Сохранение...' : 'Сохранить'}
+                        </button>
+                        <button className="sni-cancel" onClick={handleCancelEdit}>Отмена</button>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="snt">{n.text}</div>
+                  )}
                 </div>
               ))
             ) : (
