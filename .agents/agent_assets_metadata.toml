@@ -6,3 +6,9 @@ id = "RgVNtCGIMuR1jSvIaLrPx"
 uri = "file://artifacts/library/public/apple-touch-icon.png"
 type = "image"
 title = "Иконка — исходный фон, книга крупнее"
+
+[[outputs]]
+id = "lH7d2grCIlvOLd4sfdUXn"
+uri = "file://screenshots/leshukov-library.jpg"
+type = "image"
+title = "Leshukov Library — скриншот"
