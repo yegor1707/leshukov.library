@@ -116,10 +116,9 @@ export default function BookPage({ params }: { params: { id: string } }) {
     if (tab === 'vocab') setEditVocab(book.vocab?.map(v => ({ id: Math.random().toString(), ...v })) || []);
     if (tab === 'quotes') {
       const raw = book.quotes || '';
-      const sep = '\u001F';
-      const lines = raw.includes(sep)
-        ? raw.split(sep).filter(l => l.trim())
-        : raw.split('\n\n').filter(l => l.trim());
+      const lines = raw.includes('\u001F')
+        ? raw.split('\u001F').filter(l => l.trim())
+        : raw.trim() ? [raw] : [];
       setEditQuotes(lines.length ? lines.map(l => ({ id: Math.random().toString(), text: l })) : [{ id: Math.random().toString(), text: '' }]);
     }
   };
@@ -427,7 +426,7 @@ export default function BookPage({ params }: { params: { id: string } }) {
                   <>
                     {book.quotes?.trim() ? (
                       <div className="qwrap">
-                        {(book.quotes.includes('\u001F') ? book.quotes.split('\u001F') : book.quotes.split('\n\n')).filter(l => l.trim()).map((l, i) => (
+                        {(book.quotes.includes('\u001F') ? book.quotes.split('\u001F') : [book.quotes]).filter(l => l.trim()).map((l, i) => (
                           <div key={i} className="qitem" style={{ whiteSpace: 'pre-line' }}>{l}</div>
                         ))}
                       </div>
