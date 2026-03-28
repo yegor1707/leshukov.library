@@ -362,7 +362,7 @@ export default function BookPage({ params }: { params: { id: string } }) {
           </div>
 
           {/* Tab content */}
-          <div className="bp-tab-content" style={{ padding: '20px', minHeight: '220px' }}>
+          <div className="bp-tab-content" style={{ padding: '20px' }}>
 
             {/* SYNOPSIS TAB */}
             {activeTab === 'synopsis' && (
