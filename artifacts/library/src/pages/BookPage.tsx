@@ -64,6 +64,7 @@ export default function BookPage({ params }: { params: { id: string } }) {
   const [editSynopsis, setEditSynopsis] = useState("");
   const [editVocab, setEditVocab] = useState<VocabItem[]>([]);
   const [editQuotes, setEditQuotes] = useState<{ id: string; text: string }[]>([]);
+  const [vocabSearch, setVocabSearch] = useState("");
 
   const sensors = useSensors(
     useSensor(PointerSensor),
@@ -425,14 +426,36 @@ export default function BookPage({ params }: { params: { id: string } }) {
                 ) : (
                   <>
                     {book.vocab && book.vocab.length > 0 ? (
-                      <table className="vtbl" style={{ width: '100%' }}>
-                        <thead><tr><th style={{ width: '36px', textAlign: 'center' }}>№</th><th>Слово</th><th>Объяснение</th></tr></thead>
-                        <tbody>
-                          {book.vocab.map((v, i) => (
-                            <tr key={i}><td style={{ textAlign: 'center', opacity: 0.5 }}>{i + 1}</td><td>{v.word}</td><td style={{ whiteSpace: 'pre-line' }}>{v.meaning}</td></tr>
-                          ))}
-                        </tbody>
-                      </table>
+                      <>
+                        <input
+                          className="vocab-search"
+                          type="text"
+                          placeholder="Поиск по номеру или слову..."
+                          value={vocabSearch}
+                          onChange={e => setVocabSearch(e.target.value)}
+                        />
+                        <table className="vtbl" style={{ width: '100%', tableLayout: 'auto' }}>
+                          <thead><tr><th style={{ whiteSpace: 'nowrap', textAlign: 'center' }}>№</th><th>Слово</th><th>Объяснение</th></tr></thead>
+                          <tbody>
+                            {book.vocab.map((v, i) => {
+                              const q = vocabSearch.trim().toLowerCase();
+                              if (q) {
+                                const num = parseInt(q, 10);
+                                const matchNum = !isNaN(num) && (i + 1) === num;
+                                const matchText = v.word.toLowerCase().includes(q) || v.meaning.toLowerCase().includes(q);
+                                if (!matchNum && !matchText) return null;
+                              }
+                              return (
+                                <tr key={i}>
+                                  <td style={{ textAlign: 'center', opacity: 0.5, whiteSpace: 'nowrap', width: '1%', paddingRight: '6px' }}>{i + 1}</td>
+                                  <td>{v.word}</td>
+                                  <td style={{ whiteSpace: 'pre-line' }}>{v.meaning}</td>
+                                </tr>
+                              );
+                            })}
+                          </tbody>
+                        </table>
+                      </>
                     ) : (
                       <div className="sec-empty">Словарь пуст</div>
                     )}
