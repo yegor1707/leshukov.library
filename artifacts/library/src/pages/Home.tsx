@@ -95,7 +95,6 @@ function PinModal({ onClose, login, isLoading, error, setError }: {
             Введите код доступа
           </div>
 
-          {/* 4 dots */}
           <div style={{ display: 'flex', gap: '16px' }}>
             {[0, 1, 2, 3].map(i => (
               <div key={i} style={{
@@ -108,7 +107,6 @@ function PinModal({ onClose, login, isLoading, error, setError }: {
             ))}
           </div>
 
-          {/* Native numeric input — phone shows numpad */}
           <input
             ref={inputRef}
             type="tel"
@@ -168,7 +166,7 @@ export default function Home() {
     <div id="app">
       <header style={{ position: 'relative' }}>
 
-        {/* Lock / unlock icon — top right corner */}
+        {/* Lock / unlock icon */}
         <button
           onClick={() => isAdmin ? (logout(), showToast("Режим редактирования выключен")) : setShowPinModal(true)}
           title={isAdmin ? "Выйти из режима редактирования" : "Войти"}
@@ -191,6 +189,19 @@ export default function Home() {
         <h1>Leshukov <em>Library</em></h1>
         <p className="h-sub">Книжная коллекция</p>
 
+        {/* Search — lives in sidebar on desktop, in header on mobile */}
+        <div className="header-search">
+          <div className="sw">
+            <svg width="13" height="13" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+              <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
+            </svg>
+            <input
+              className="si" type="text" placeholder="Поиск…"
+              value={search} onChange={e => setSearch(e.target.value)}
+            />
+          </div>
+        </div>
+
         <div className="lang-tabs">
           {[
             { key: 'all', label: 'Все' },
@@ -212,18 +223,12 @@ export default function Home() {
             Добавить книгу
           </button>
         )}
+
+        <div className="h-stats"><strong>{books.length}</strong> книг</div>
       </header>
 
-      <div className="controls">
-        <div className="sw">
-          <svg width="13" height="13" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
-            <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
-          </svg>
-          <input
-            className="si" type="text" placeholder="Поиск…"
-            value={search} onChange={e => setSearch(e.target.value)}
-          />
-        </div>
+      {/* Mobile-only controls row (hidden on desktop) */}
+      <div className="controls mobile-controls">
         <div className="stats"><strong>{books.length}</strong> книг</div>
       </div>
 

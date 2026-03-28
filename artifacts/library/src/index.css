@@ -243,6 +243,16 @@ h1 em{font-style:italic;color:var(--gold);}
 .bp-back-dt{display:none;}
 .bp-cover-dt{display:none;}
 
+/* header-search: show on mobile inside header, show on desktop inside sidebar */
+.header-search{display:flex;margin-bottom:16px;}
+.header-search .sw{width:100%;}
+
+/* h-stats: hidden on mobile (search already shown there via header-search) */
+.h-stats{display:none;}
+
+/* mobile-controls: on mobile shows just stats below header */
+.mobile-controls{padding:8px 16px 0;border-bottom:none !important;}
+
 /* ── DESKTOP LAYOUT ── */
 @media(min-width:1024px){
   body{background:#060d08 !important;padding:0 !important;display:block !important;}
@@ -267,27 +277,49 @@ h1 em{font-style:italic;color:var(--gold);}
     max-height:100vh;overflow-y:auto;
     border-bottom:none !important;
     border-right:1px solid var(--border);
-    padding:36px 24px 30px !important;
+    padding:44px 26px 30px !important;
     display:flex;flex-direction:column;
     background:linear-gradient(180deg,rgba(18,40,22,.6) 0%,rgba(13,28,17,.4) 100%) !important;
   }
-  h1{font-size:1.75rem !important;}
-  .h-sub{font-size:.88rem !important;margin-bottom:20px !important;}
+  h1{font-size:2.2rem !important;}
+  .h-sub{font-size:.95rem !important;margin-bottom:22px !important;}
+
+  /* Search inside sidebar */
+  .header-search{
+    display:flex;
+    margin-bottom:20px;
+  }
+  .header-search .sw{width:100%;}
+  .header-search .si{
+    padding-left:34px;
+    font-size:.88rem;
+  }
+
   .lang-tabs{margin-bottom:16px;}
   .add-btn{margin-top:auto;font-size:.78rem;}
 
-  /* Main content area */
-  .controls{
-    grid-column:2;
-    padding:20px 28px 14px;
-    border-bottom:1px solid var(--border);
-    background:rgba(13,28,17,.3);
+  /* Stats at bottom of sidebar */
+  .h-stats{
+    display:block !important;
+    margin-top:16px;
+    font-family:'IM Fell English',serif;
+    font-size:.82rem;color:var(--text2);
+    font-style:italic;text-align:center;
+    padding-top:14px;
+    border-top:1px solid var(--bord2);
   }
+  .h-stats strong{color:var(--ivory2);font-style:normal;}
+
+  /* Hide mobile-only controls row on desktop */
+  .mobile-controls{display:none !important;}
+
+  /* Main content area — no separate controls bar */
+  .controls{display:none !important;}
   .grid-books{
     grid-column:2;
-    grid-template-columns:1fr 1fr 1fr;
+    grid-template-columns:repeat(4,1fr);
     padding:22px 28px 60px;
-    gap:18px;
+    gap:16px;
   }
 
   /* Book cards slightly larger text on desktop */
