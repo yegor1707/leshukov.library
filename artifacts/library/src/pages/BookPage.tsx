@@ -542,16 +542,7 @@ export default function BookPage({ params }: { params: { id: string } }) {
             {/* NOTES TAB */}
             {activeTab === 'notes' && (
               <div>
-                <textarea
-                  className="sn-area"
-                  placeholder="Добавить заметку…"
-                  value={noteText}
-                  onChange={e => setNoteText(e.target.value)}
-                />
-                <button className="sn-save" onClick={handleSaveNote} disabled={addNoteMutation.isPending}>
-                  {addNoteMutation.isPending ? 'Сохранение…' : 'Сохранить заметку'}
-                </button>
-                <div className="sn-list" style={{ marginTop: '14px' }}>
+                <div className="sn-list">
                   {notes.length > 0 ? notes.map(n => (
                     <div key={n.id} className="sni">
                       <div className="sni-header">
@@ -588,6 +579,16 @@ export default function BookPage({ params }: { params: { id: string } }) {
                     <div className="sec-empty" style={{ paddingTop: '10px' }}>Заметок пока нет</div>
                   )}
                 </div>
+                <textarea
+                  className="sn-area"
+                  placeholder="Добавить заметку…"
+                  value={noteText}
+                  onChange={e => setNoteText(e.target.value)}
+                  style={{ marginTop: '16px' }}
+                />
+                <button className="sn-save" onClick={handleSaveNote} disabled={addNoteMutation.isPending}>
+                  {addNoteMutation.isPending ? 'Сохранение…' : 'Сохранить заметку'}
+                </button>
               </div>
             )}
           </div>
