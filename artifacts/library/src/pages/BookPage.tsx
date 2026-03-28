@@ -18,8 +18,9 @@ import { CSS } from '@dnd-kit/utilities';
 
 type VocabItem = { id: string; word: string; meaning: string };
 
-function SortableVocabItem({ v, updateV, removeVRow }: {
+function SortableVocabItem({ v, idx, updateV, removeVRow }: {
   v: VocabItem;
+  idx: number;
   updateV: (id: string, field: 'word' | 'meaning', val: string) => void;
   removeVRow: (id: string) => void;
 }) {
@@ -27,8 +28,11 @@ function SortableVocabItem({ v, updateV, removeVRow }: {
   return (
     <div ref={setNodeRef} style={{ transform: CSS.Transform.toString(transform), transition, opacity: isDragging ? 0.5 : 1 }} className="ve">
       <span className="vdrag" {...attributes} {...listeners}>⠿</span>
-      <input type="text" placeholder="Слово" value={v.word} onChange={e => updateV(v.id, 'word', e.target.value)} />
-      <textarea placeholder="Объяснение" value={v.meaning} onChange={e => updateV(v.id, 'meaning', e.target.value)} className="ve-meaning" />
+      <span className="vocab-num ve-num">{idx}</span>
+      <div className="ve-content">
+        <input type="text" placeholder="Слово" value={v.word} onChange={e => updateV(v.id, 'word', e.target.value)} />
+        <textarea placeholder="Объяснение" value={v.meaning} onChange={e => updateV(v.id, 'meaning', e.target.value)} className="ve-meaning" />
+      </div>
       <button type="button" className="vd" onClick={() => removeVRow(v.id)}>✕</button>
     </div>
   );
@@ -409,8 +413,8 @@ export default function BookPage({ params }: { params: { id: string } }) {
                     <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleVocabDragEnd}>
                       <SortableContext items={editVocab.map(v => v.id)} strategy={verticalListSortingStrategy}>
                         <div className="vlist">
-                          {editVocab.map(v => (
-                            <SortableVocabItem key={v.id} v={v} updateV={updateV} removeVRow={removeVRow} />
+                          {editVocab.map((v, i) => (
+                            <SortableVocabItem key={v.id} v={v} idx={i + 1} updateV={updateV} removeVRow={removeVRow} />
                           ))}
                         </div>
                       </SortableContext>

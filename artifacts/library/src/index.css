@@ -145,10 +145,12 @@ h1 em{font-style:italic;color:var(--gold);}
 #coverInput{display:none;}
 
 /* vocab */
-.vlist{display:flex;flex-direction:column;gap:7px;margin-bottom:8px;}
-.ve{display:grid;grid-template-columns:auto 1fr 1.6fr auto;gap:6px;align-items:start;}
-.vdrag{cursor:grab;padding:8px 4px;color:var(--text3);touch-action:none;display:flex;align-items:flex-start;font-size:1.1rem;user-select:none;}
-.ve input{padding:8px 9px;}
+.vlist{display:flex;flex-direction:column;margin-bottom:8px;}
+.ve{display:flex;flex-direction:row;gap:6px;align-items:flex-start;padding:10px 0;border-bottom:1px solid var(--bord2);}
+.vdrag{cursor:grab;padding:8px 4px;color:var(--text3);touch-action:none;display:flex;align-items:flex-start;font-size:1.1rem;user-select:none;flex-shrink:0;}
+.ve-num{padding-top:8px;flex-shrink:0;}
+.ve-content{display:flex;flex-direction:column;gap:5px;flex:1;min-width:0;}
+.ve input{padding:8px 9px;width:100%;box-sizing:border-box;}
 .ve-meaning{padding:8px 9px;min-height:36px;max-height:120px;overflow-y:auto;resize:none;touch-action:pan-y;overscroll-behavior:contain;background:rgba(8,16,10,.8);border:1px solid var(--border);font-family:'Crimson Text',serif;font-size:.95rem;color:var(--text);outline:none;line-height:1.5;border-radius:0;width:100%;}
 .ve-meaning:focus{border-color:var(--gold2);}
 .ve-meaning::placeholder{color:var(--text3);font-style:italic;}
@@ -193,7 +195,7 @@ h1 em{font-style:italic;color:var(--gold);}
 .vocab-entry{padding:10px 0;border-bottom:1px solid var(--bord2);}
 .vocab-entry:last-child{border-bottom:none;}
 .vocab-word-row{display:flex;align-items:baseline;gap:10px;}
-.vocab-num{font-family:'Playfair Display',serif;font-size:.8rem;color:var(--text3);min-width:2.5em;text-align:right;flex-shrink:0;}
+.vocab-num{font-family:'Playfair Display',serif;font-size:.95rem;color:var(--text3);min-width:2.5em;text-align:right;flex-shrink:0;}
 .vocab-word{font-family:'Playfair Display',serif;font-size:1rem;font-weight:700;color:var(--ivory2);word-break:break-word;}
 .vocab-meaning{font-size:.88rem;line-height:1.6;color:var(--text2);margin-top:4px;padding-left:calc(2.5em + 10px);white-space:pre-line;word-break:break-word;}
 .vtbl{width:100%;border-collapse:collapse;table-layout:auto;}
