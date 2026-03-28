@@ -239,6 +239,10 @@ h1 em{font-style:italic;color:var(--gold);}
 .toast{position:fixed;bottom:22px;left:50%;transform:translateX(-50%) translateY(50px);background:var(--bg3);border:1px solid var(--border);color:var(--ivory2);padding:9px 16px;font-family:'Crimson Text',serif;font-size:.88rem;z-index:999;transition:transform .25s;pointer-events:none;white-space:nowrap;border-radius:4px;}
 .toast.show{transform:translateX(-50%) translateY(0);}
 
+/* desktop-only elements hidden on mobile */
+.bp-back-dt{display:none;}
+.bp-cover-dt{display:none;}
+
 /* ── DESKTOP LAYOUT ── */
 @media(min-width:1024px){
   body{background:#060d08 !important;padding:0 !important;display:block !important;}
@@ -303,40 +307,93 @@ h1 em{font-style:italic;color:var(--gold);}
     max-width:1100px !important;
     margin:0 auto !important;
     display:grid !important;
-    grid-template-columns:320px 1fr !important;
-    grid-template-rows:auto auto 1fr !important;
+    grid-template-columns:300px 1fr !important;
     align-items:start !important;
     width:100% !important;
   }
-  /* Hero banner spans full width */
-  .bp-inner > div:first-child{
-    grid-column:1 / -1 !important;
-  }
-  /* Info panel: left column, sticky */
+  /* Hide mobile hero banner on desktop */
+  .bp-hero{ display:none !important; }
+
+  /* Left info panel */
   .bp-info{
     grid-column:1 !important;
-    grid-row:2 / 4 !important;
+    grid-row:1 / 3 !important;
     position:sticky !important;
     top:0 !important;
     max-height:100vh;
     overflow-y:auto;
-    padding:24px 24px 30px !important;
+    padding:0 0 30px !important;
     margin-top:0 !important;
     border-right:1px solid var(--border);
     background:rgba(11,21,13,.4);
   }
-  /* Tabs nav: right column top */
+  /* Desktop back button */
+  .bp-back-dt{
+    display:flex !important;
+    align-items:center;gap:6px;
+    padding:14px 20px;
+    width:100%;
+    background:transparent;
+    border:none;
+    border-bottom:1px solid var(--bord2);
+    color:var(--text2);
+    font-family:'Crimson Text',serif;
+    font-size:.78rem;letter-spacing:.12em;text-transform:uppercase;
+    cursor:pointer;
+    text-align:left;
+  }
+  .bp-back-dt:hover{color:var(--gold);}
+
+  /* Portrait cover image */
+  .bp-cover-dt{
+    display:block !important;
+    width:100%;
+    border-bottom:1px solid var(--border);
+  }
+  .bp-cover-dt img{
+    width:100%;
+    aspect-ratio:2/3;
+    object-fit:cover;
+    display:block;
+  }
+  .bp-cover-ph{
+    width:100%;aspect-ratio:2/3;
+    display:flex;flex-direction:column;
+    align-items:center;justify-content:center;gap:8px;
+    background:linear-gradient(140deg,#0c1f0f,#060e07);
+    position:relative;
+  }
+  .bp-cover-ph-bg{
+    position:absolute;inset:0;opacity:.06;
+    background-image:repeating-linear-gradient(-42deg,transparent 0,transparent 12px,rgba(200,168,74,.6) 12px,rgba(200,168,74,.6) 13px);
+  }
+  .bp-cover-ph-title{
+    font-family:'Playfair Display',serif;
+    font-size:.85rem;font-weight:700;
+    color:var(--ivory2);opacity:.35;
+    text-align:center;padding:0 16px;
+    position:relative;line-height:1.3;
+  }
+
+  /* Info text below cover */
+  .bp-info-content{
+    padding:20px 20px 0 !important;
+  }
+
+  /* Tabs nav: right column row 1 */
   .vtabs{
     grid-column:2 !important;
-    grid-row:2 !important;
+    grid-row:1 !important;
+    border-top:none;
+    border-bottom:1px solid var(--border);
   }
-  /* Tab content: right column, scrollable */
+  /* Tab content: right column row 2 */
   .bp-tab-content{
     grid-column:2 !important;
-    grid-row:3 !important;
+    grid-row:2 !important;
     padding:24px 28px !important;
     min-height:60vh !important;
   }
   /* Larger title on book page desktop */
-  .bp-info h1{font-size:1.9rem !important;}
+  .bp-info h1{font-size:1.7rem !important;line-height:1.15 !important;}
 }

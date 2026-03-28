@@ -245,8 +245,8 @@ export default function BookPage({ params }: { params: { id: string } }) {
       <div className="bp-outer" style={{ minHeight: '100vh', background: 'var(--bg)', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
         <div className="bp-inner" style={{ width: '100%', maxWidth: '480px', position: 'relative' }}>
 
-          {/* Hero — landscape hero banner with gradient fade */}
-          <div style={{ width: '100%', position: 'relative', overflow: 'hidden', background: 'linear-gradient(140deg,#0c1f0f,#060e07)' }}>
+          {/* Hero — landscape hero banner with gradient fade (mobile only) */}
+          <div className="bp-hero" style={{ width: '100%', position: 'relative', overflow: 'hidden', background: 'linear-gradient(140deg,#0c1f0f,#060e07)' }}>
             {heroSrc ? (
               <div style={{ position: 'relative' }}>
                 <img
@@ -295,37 +295,57 @@ export default function BookPage({ params }: { params: { id: string } }) {
 
           {/* Info block */}
           <div className="bp-info" style={{ padding: '0 20px 0', marginTop: heroSrc ? '-32px' : '0', position: 'relative', zIndex: 1 }}>
-            <div style={{ display: 'inline-block', fontFamily: "'Crimson Text', serif", fontSize: '.65rem', letterSpacing: '.2em', textTransform: 'uppercase', padding: '2px 8px', border: '1px solid rgba(200,168,74,.22)', color: 'var(--gold2)', marginBottom: '10px' }}>
-              {LL_FULL[book.lang] || book.lang}
-            </div>
-            <h1 style={{ fontFamily: "'Playfair Display', serif", fontSize: 'clamp(1.5rem, 5vw, 2.2rem)', color: 'var(--ivory)', fontWeight: 900, lineHeight: 1.1, marginBottom: '6px' }}>
-              {book.title}
-            </h1>
-            <p style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: '1.1rem', fontStyle: 'italic', fontWeight: 600, color: 'var(--text2)', letterSpacing: '.04em', marginBottom: '12px', wordBreak: 'break-word', overflowWrap: 'break-word' }}>
-              {book.author}
-            </p>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap', marginBottom: '20px' }}>
-              {book.rating ? <Stars r={book.rating} /> : null}
-              {book.year ? <span style={{ fontFamily: "'Crimson Text', serif", fontSize: '.82rem', color: 'var(--text3)' }}>{book.year}</span> : null}
-              {book.genre ? (
-                <span style={{ fontFamily: "'Crimson Text', serif", fontSize: '.65rem', letterSpacing: '.12em', textTransform: 'uppercase', padding: '2px 6px', border: '1px solid var(--bord2)', color: 'var(--text3)' }}>
-                  {book.genre}
-                </span>
-              ) : null}
+            {/* Desktop-only: back button */}
+            <button className="bp-back-dt" onClick={() => navigate('/')}>
+              ← Библиотека
+            </button>
+
+            {/* Desktop-only: portrait cover */}
+            <div className="bp-cover-dt">
+              {book.cover ? (
+                <img src={book.cover} alt={book.title} />
+              ) : (
+                <div className="bp-cover-ph">
+                  <div className="bp-cover-ph-bg" />
+                  <span style={{ fontSize: '3rem', opacity: .12, position: 'relative' }}>📖</span>
+                  <span className="bp-cover-ph-title">{book.title}</span>
+                </div>
+              )}
             </div>
 
-            {isAdmin && (
-              <div style={{ display: 'flex', gap: '8px', marginBottom: '20px', flexWrap: 'wrap' }}>
-                <button
-                  className="vedit"
-                  onClick={() => setEditFormOpen(true)}
-                  style={{ flex: 1 }}
-                >
-                  ✎ Редактировать книгу
-                </button>
-                <button className="vdelbtn" onClick={handleDelete} disabled={isDeleting}>Удалить</button>
+            <div className="bp-info-content">
+              <div style={{ display: 'inline-block', fontFamily: "'Crimson Text', serif", fontSize: '.65rem', letterSpacing: '.2em', textTransform: 'uppercase', padding: '2px 8px', border: '1px solid rgba(200,168,74,.22)', color: 'var(--gold2)', marginBottom: '10px' }}>
+                {LL_FULL[book.lang] || book.lang}
               </div>
-            )}
+              <h1 style={{ fontFamily: "'Playfair Display', serif", fontSize: 'clamp(1.5rem, 5vw, 2.2rem)', color: 'var(--ivory)', fontWeight: 900, lineHeight: 1.1, marginBottom: '6px' }}>
+                {book.title}
+              </h1>
+              <p style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: '1.1rem', fontStyle: 'italic', fontWeight: 600, color: 'var(--text2)', letterSpacing: '.04em', marginBottom: '12px', wordBreak: 'break-word', overflowWrap: 'break-word' }}>
+                {book.author}
+              </p>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap', marginBottom: '20px' }}>
+                {book.rating ? <Stars r={book.rating} /> : null}
+                {book.year ? <span style={{ fontFamily: "'Crimson Text', serif", fontSize: '.82rem', color: 'var(--text3)' }}>{book.year}</span> : null}
+                {book.genre ? (
+                  <span style={{ fontFamily: "'Crimson Text', serif", fontSize: '.65rem', letterSpacing: '.12em', textTransform: 'uppercase', padding: '2px 6px', border: '1px solid var(--bord2)', color: 'var(--text3)' }}>
+                    {book.genre}
+                  </span>
+                ) : null}
+              </div>
+
+              {isAdmin && (
+                <div style={{ display: 'flex', gap: '8px', marginBottom: '20px', flexWrap: 'wrap' }}>
+                  <button
+                    className="vedit"
+                    onClick={() => setEditFormOpen(true)}
+                    style={{ flex: 1 }}
+                  >
+                    ✎ Редактировать книгу
+                  </button>
+                  <button className="vdelbtn" onClick={handleDelete} disabled={isDeleting}>Удалить</button>
+                </div>
+              )}
+            </div>
           </div>
 
           {/* Tabs */}
