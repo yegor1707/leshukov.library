@@ -242,8 +242,8 @@ export default function BookPage({ params }: { params: { id: string } }) {
 
   return (
     <>
-      <div style={{ minHeight: '100vh', background: 'var(--bg)', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-        <div style={{ width: '100%', maxWidth: '480px', position: 'relative' }}>
+      <div className="bp-outer" style={{ minHeight: '100vh', background: 'var(--bg)', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+        <div className="bp-inner" style={{ width: '100%', maxWidth: '480px', position: 'relative' }}>
 
           {/* Hero — landscape hero banner with gradient fade */}
           <div style={{ width: '100%', position: 'relative', overflow: 'hidden', background: 'linear-gradient(140deg,#0c1f0f,#060e07)' }}>
@@ -294,7 +294,7 @@ export default function BookPage({ params }: { params: { id: string } }) {
           </div>
 
           {/* Info block */}
-          <div style={{ padding: '0 20px 0', marginTop: heroSrc ? '-32px' : '0', position: 'relative', zIndex: 1 }}>
+          <div className="bp-info" style={{ padding: '0 20px 0', marginTop: heroSrc ? '-32px' : '0', position: 'relative', zIndex: 1 }}>
             <div style={{ display: 'inline-block', fontFamily: "'Crimson Text', serif", fontSize: '.65rem', letterSpacing: '.2em', textTransform: 'uppercase', padding: '2px 8px', border: '1px solid rgba(200,168,74,.22)', color: 'var(--gold2)', marginBottom: '10px' }}>
               {LL_FULL[book.lang] || book.lang}
             </div>
@@ -342,7 +342,7 @@ export default function BookPage({ params }: { params: { id: string } }) {
           </div>
 
           {/* Tab content */}
-          <div style={{ padding: '20px', minHeight: '220px' }}>
+          <div className="bp-tab-content" style={{ padding: '20px', minHeight: '220px' }}>
 
             {/* SYNOPSIS TAB */}
             {activeTab === 'synopsis' && (

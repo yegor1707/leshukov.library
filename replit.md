@@ -59,6 +59,16 @@ lib/
 - `books` table: id, title, author, lang, genre, year, rating, synopsis, quotes, thoughts, vocab (jsonb), cover (text/base64), created_at
 - `notes` table: id, book_id (FK), text, created_at
 
+## Responsive Layout
+
+- **Mobile (< 640px)**: Full-width, single-column phone layout
+- **Tablet (640–1023px)**: Centered 480px phone-frame card
+- **Desktop (≥ 1024px)**: Full-width 2-panel layout
+  - Left: 280px sticky sidebar (logo, subtitle, language tabs, add button)
+  - Right: search bar at top, 3-column book grid below
+- **BookPage desktop**: Full-width hero banner, left panel (info/meta, sticky), right panel (tabs + tab content)
+- CSS classes added for BookPage targeting: `.bp-outer`, `.bp-inner`, `.bp-info`, `.bp-tab-content`
+
 ## Access
 
 Deploy the app to get a permanent public URL (*.replit.app) to share with family members. The site is publicly accessible to anyone with the link — no login required.
