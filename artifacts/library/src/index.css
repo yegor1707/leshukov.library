@@ -257,69 +257,68 @@ h1 em{font-style:italic;color:var(--gold);}
 @media(min-width:1024px){
   body{background:#060d08 !important;padding:0 !important;display:block !important;}
 
-  /* Remove phone frame, make full-width grid */
+  /* Remove phone frame, expand to full width — single column like mobile */
   #app{
     width:100% !important;max-width:100% !important;border-radius:0 !important;
     box-shadow:none !important;min-height:100vh;
     overflow:visible !important;
-    display:grid;
-    grid-template-columns:280px 1fr;
-    align-items:start;
+    display:block !important;
   }
   #app::before{display:none;}
 
-  /* Sidebar: sticky header */
+  /* Header: full-width top bar, centered content */
   header{
-    grid-column:1;
-    grid-row:1 / 100;
-    align-self:start;
-    position:sticky;top:0;
-    max-height:100vh;overflow-y:auto;
-    border-bottom:none !important;
-    border-right:1px solid var(--border);
-    padding:44px 26px 30px !important;
-    display:flex;flex-direction:column;
-    background:linear-gradient(180deg,rgba(18,40,22,.6) 0%,rgba(13,28,17,.4) 100%) !important;
+    max-width:860px;
+    margin:0 auto;
+    padding:52px 60px 32px !important;
+    border-bottom:1px solid var(--border);
+    background:linear-gradient(180deg,rgba(20,45,24,.5) 0%,transparent 100%) !important;
+    border-right:none !important;
+    position:relative !important;
+    text-align:center;
+    display:block !important;
   }
-  h1{font-size:2.2rem !important;}
-  .h-sub{font-size:.95rem !important;margin-bottom:22px !important;}
+  h1{font-size:2.6rem !important;}
+  .h-sub{font-size:1.05rem !important;margin-bottom:28px !important;}
 
-  /* Search inside sidebar */
+  /* Search bar — centered, wider on desktop */
   .header-search{
+    max-width:520px;
+    margin:0 auto 22px;
     display:flex;
-    margin-bottom:20px;
   }
   .header-search .sw{width:100%;}
-  .header-search .si{
-    padding-left:34px;
-    font-size:.88rem;
+
+  .lang-tabs{margin-bottom:0;}
+  .add-btn{
+    margin-top:20px;
+    display:inline-flex !important;
+    width:auto !important;
+    padding:11px 24px;
   }
 
-  .lang-tabs{margin-bottom:16px;}
-  .add-btn{margin-top:auto;font-size:.78rem;}
+  /* Hide sidebar stats — not needed */
+  .h-stats{display:none !important;}
 
-  /* Stats at bottom of sidebar */
-  .h-stats{
-    display:block !important;
-    margin-top:16px;
-    font-family:'IM Fell English',serif;
-    font-size:.82rem;color:var(--text2);
-    font-style:italic;text-align:center;
-    padding-top:14px;
-    border-top:1px solid var(--bord2);
+  /* Show stats row below header */
+  .mobile-controls{
+    display:flex !important;
+    max-width:1440px;
+    margin:0 auto;
+    padding:10px 60px 0;
+    border-bottom:none !important;
   }
-  .h-stats strong{color:var(--ivory2);font-style:normal;}
 
-  /* Hide mobile-only controls row on desktop */
-  .mobile-controls{display:none !important;}
-
-  /* Main content area — no separate controls bar */
+  /* Hide old controls (no longer needed) */
   .controls{display:none !important;}
+
+  /* Books grid — wide, 5 columns */
   .grid-books{
-    grid-column:2;
-    grid-template-columns:repeat(4,1fr);
-    padding:22px 28px 60px;
-    gap:16px;
+    max-width:1440px;
+    margin:0 auto;
+    grid-template-columns:repeat(5,1fr);
+    padding:18px 60px 60px;
+    gap:18px;
   }
 
   /* Book cards slightly larger text on desktop */
@@ -329,9 +328,8 @@ h1 em{font-style:italic;color:var(--gold);}
   /* Wider sheet modal on desktop */
   .sheet{max-width:680px !important;}
 
-  /* BookPage spans full width */
+  /* BookPage: full-width, uses its own internal grid */
   .bp-outer{
-    grid-column:1 / -1;
     align-items:stretch !important;
     background:var(--bg) !important;
   }
