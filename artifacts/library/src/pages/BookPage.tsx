@@ -434,27 +434,26 @@ export default function BookPage({ params }: { params: { id: string } }) {
                           value={vocabSearch}
                           onChange={e => setVocabSearch(e.target.value)}
                         />
-                        <table className="vtbl" style={{ width: '100%', tableLayout: 'auto' }}>
-                          <thead><tr><th style={{ whiteSpace: 'nowrap', textAlign: 'center' }}>№</th><th>Слово</th><th>Объяснение</th></tr></thead>
-                          <tbody>
-                            {book.vocab.map((v, i) => {
-                              const q = vocabSearch.trim().toLowerCase();
-                              if (q) {
-                                const num = parseInt(q, 10);
-                                const matchNum = !isNaN(num) && (i + 1) === num;
-                                const matchText = v.word.toLowerCase().includes(q) || v.meaning.toLowerCase().includes(q);
-                                if (!matchNum && !matchText) return null;
-                              }
-                              return (
-                                <tr key={i}>
-                                  <td style={{ textAlign: 'center', opacity: 0.5, whiteSpace: 'nowrap', width: '1%', paddingRight: '6px' }}>{i + 1}</td>
-                                  <td>{v.word}</td>
-                                  <td style={{ whiteSpace: 'pre-line' }}>{v.meaning}</td>
-                                </tr>
-                              );
-                            })}
-                          </tbody>
-                        </table>
+                        <div className="vocab-list">
+                          {book.vocab.map((v, i) => {
+                            const q = vocabSearch.trim().toLowerCase();
+                            if (q) {
+                              const num = parseInt(q, 10);
+                              const matchNum = !isNaN(num) && (i + 1) === num;
+                              const matchText = v.word.toLowerCase().includes(q) || v.meaning.toLowerCase().includes(q);
+                              if (!matchNum && !matchText) return null;
+                            }
+                            return (
+                              <div key={i} className="vocab-entry">
+                                <div className="vocab-word-row">
+                                  <span className="vocab-num">{i + 1}</span>
+                                  <span className="vocab-word">{v.word}</span>
+                                </div>
+                                {v.meaning ? <div className="vocab-meaning">{v.meaning}</div> : null}
+                              </div>
+                            );
+                          })}
+                        </div>
                       </>
                     ) : (
                       <div className="sec-empty">Словарь пуст</div>
