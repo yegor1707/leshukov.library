@@ -2,18 +2,11 @@ export function normalizeAudioUrl(raw: string): string {
   const url = raw.trim();
   if (!url) return url;
 
-  const driveFilePattern = /drive\.google\.com\/file\/d\/([a-zA-Z0-9_-]+)/;
-  const driveOpenPattern = /drive\.google\.com\/open\?id=([a-zA-Z0-9_-]+)/;
-  const driveUcPattern = /drive\.google\.com\/uc\?[^"'\s]*id=([a-zA-Z0-9_-]+)/;
+  const isDrive = /drive\.google\.com|docs\.google\.com/.test(url);
+  const isDropbox = /dropbox\.com/.test(url);
 
-  let match = url.match(driveFilePattern) || url.match(driveOpenPattern) || url.match(driveUcPattern);
-  if (match) {
-    const fileId = match[1];
-    return `https://drive.google.com/uc?export=download&id=${fileId}`;
-  }
-
-  if (url.includes("dropbox.com")) {
-    return url.replace(/[?&]dl=0/, "").replace(/[?&]raw=1/, "") + (url.includes("?") ? "&" : "?") + "dl=1";
+  if (isDrive || isDropbox) {
+    return `/api/audio-proxy?url=${encodeURIComponent(url)}`;
   }
 
   return url;
