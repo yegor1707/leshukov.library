@@ -5,23 +5,48 @@ export interface AudioMeta {
 
 export const SECTION_SEP = " /// ";
 
-export function splitPartTitle(raw: string): { section: string; title: string } {
-  const t = (raw ?? "").trim();
-  if (!t) return { section: "", title: "" };
-  const idx = t.indexOf(SECTION_SEP);
-  if (idx < 0) return { section: "", title: t };
-  return {
-    section: t.slice(0, idx).trim(),
-    title: t.slice(idx + SECTION_SEP.length).trim(),
-  };
+export interface PartFields {
+  section: string;
+  chapter: string;
+  title: string;
 }
 
-export function joinPartTitle(section: string, title: string): string {
+export function splitPartTitle(raw: string): PartFields {
+  const t = (raw ?? "").trim();
+  if (!t) return { section: "", chapter: "", title: "" };
+  const parts = t.split(SECTION_SEP);
+  if (parts.length >= 3) {
+    return {
+      section: (parts[0] || "").trim(),
+      chapter: (parts[1] || "").trim(),
+      title: parts.slice(2).join(SECTION_SEP).trim(),
+    };
+  }
+  if (parts.length === 2) {
+    // Legacy format: "section /// title" → treat as section + title (no chapter)
+    return {
+      section: (parts[0] || "").trim(),
+      chapter: "",
+      title: (parts[1] || "").trim(),
+    };
+  }
+  return { section: "", chapter: "", title: t };
+}
+
+export function joinPartTitle(section: string, chapter: string, title: string): string {
   const s = (section ?? "").trim();
+  const c = (chapter ?? "").trim();
   const t = (title ?? "").trim();
-  if (s && t) return `${s}${SECTION_SEP}${t}`;
-  if (s) return s;
-  return t;
+  if (!s && !c && !t) return "";
+  return `${s}${SECTION_SEP}${c}${SECTION_SEP}${t}`;
+}
+
+export function partDisplay(fields: PartFields): string {
+  const { chapter, title } = fields;
+  if (chapter && title) return `${chapter}. ${title}`;
+  if (chapter) return chapter;
+  if (title) return title;
+  return "Без названия";
 }
 
 export async function fetchAudioMeta(bookId: string): Promise<AudioMeta> {

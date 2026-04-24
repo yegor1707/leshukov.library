@@ -362,7 +362,7 @@ function formatAudioPart(p: any) {
 }
 
 const audioPartSchema = z.object({
-  title: z.string().min(1),
+  title: z.string().default(""),
   url: z.string().min(1),
   position: z.number().int().optional(),
 });

@@ -459,13 +459,15 @@ h1 em{font-style:italic;color:var(--gold);}
 
 /* ─────── Audiobook player ─────── */
 .ap-wrap{
-  display:flex;flex-direction:column;gap:18px;
-  padding:18px;
+  display:flex;flex-direction:column;gap:16px;
+  padding:14px;
   background:linear-gradient(160deg,rgba(20,45,24,.45) 0%,rgba(11,21,13,.6) 100%);
   border:1px solid var(--border);
   border-radius:6px;
   position:relative;overflow:hidden;
 }
+@media(min-width:640px){.ap-wrap{padding:18px;gap:18px;}}
+.ap-btn svg{display:block;}
 .ap-wrap::before{
   content:'';position:absolute;inset:0;pointer-events:none;
   background:radial-gradient(ellipse at 80% 0%,rgba(200,168,74,.07) 0%,transparent 50%);
@@ -518,32 +520,42 @@ h1 em{font-style:italic;color:var(--gold);}
 }
 .ap-btn-play:hover{background:var(--ivory);border-color:var(--ivory);color:var(--bg) !important;}
 
-.ap-sub{display:grid;grid-template-columns:1fr;gap:14px;}
-@media(min-width:480px){.ap-sub{grid-template-columns:1fr auto;align-items:center;gap:24px;}}
-.ap-sub-label{display:block;font-family:'Crimson Text',serif;font-size:.62rem;letter-spacing:.22em;text-transform:uppercase;color:var(--text2);margin-bottom:6px;}
-.ap-rate{min-width:0;}
-.ap-rate-btns{display:flex;gap:4px;flex-wrap:wrap;}
-.ap-rate-btn{
-  background:transparent;border:1px solid var(--border);color:var(--text2);
-  font-family:'Crimson Text',serif;font-size:.78rem;
-  padding:5px 9px;cursor:pointer;border-radius:2px;transition:all .15s;
-  font-variant-numeric:tabular-nums;
+/* Rate pill (compact dropdown that replaces big rate row + volume) */
+.ap-rate-row{display:flex;justify-content:center;}
+.ap-rate-pill-wrap{position:relative;}
+.ap-rate-pill{
+  display:inline-flex;align-items:center;gap:8px;
+  background:transparent;border:1px solid var(--border);
+  color:var(--ivory2);font-family:'Crimson Text',serif;font-size:.82rem;
+  padding:6px 12px;cursor:pointer;border-radius:999px;
+  transition:all .15s;
 }
-.ap-rate-btn:hover{border-color:var(--gold2);color:var(--ivory2);}
-.ap-rate-btn.active{background:rgba(200,168,74,.15);border-color:var(--gold2);color:var(--gold);}
-
-.ap-vol{min-width:140px;}
-.ap-vol-slider{
-  width:100%;-webkit-appearance:none;appearance:none;height:3px;background:transparent;cursor:pointer;outline:none;
+.ap-rate-pill:hover{border-color:var(--gold2);color:var(--gold);}
+.ap-rate-pill-label{
+  font-size:.6rem;letter-spacing:.22em;text-transform:uppercase;
+  color:var(--text2);
 }
-.ap-vol-slider::-webkit-slider-runnable-track{
-  height:3px;border-radius:2px;
-  background:linear-gradient(90deg,var(--gold2) 0%,var(--gold2) var(--pct,100%),rgba(200,168,74,.15) var(--pct,100%),rgba(200,168,74,.15) 100%);
+.ap-rate-pill-value{
+  font-family:'IM Fell English',serif;font-style:italic;
+  font-size:.95rem;color:var(--gold);font-variant-numeric:tabular-nums;
 }
-.ap-vol-slider::-moz-range-track{height:3px;border-radius:2px;background:rgba(200,168,74,.15);}
-.ap-vol-slider::-moz-range-progress{height:3px;border-radius:2px;background:var(--gold2);}
-.ap-vol-slider::-webkit-slider-thumb{-webkit-appearance:none;appearance:none;width:11px;height:11px;border-radius:50%;background:var(--ivory2);border:1px solid var(--bg);margin-top:-4px;cursor:pointer;}
-.ap-vol-slider::-moz-range-thumb{width:11px;height:11px;border-radius:50%;background:var(--ivory2);border:1px solid var(--bg);cursor:pointer;}
+.ap-rate-pill svg{color:var(--text2);transition:transform .15s;}
+.ap-rate-pill[aria-expanded="true"] svg{transform:rotate(180deg);color:var(--gold2);}
+.ap-rate-menu{
+  position:absolute;bottom:calc(100% + 6px);left:50%;transform:translateX(-50%);
+  display:flex;flex-direction:column;gap:1px;
+  background:var(--bg2);border:1px solid var(--border);border-radius:6px;
+  padding:4px;min-width:96px;z-index:50;
+  box-shadow:0 6px 24px rgba(0,0,0,.55),0 0 0 1px rgba(200,168,74,.08);
+}
+.ap-rate-menu-item{
+  background:transparent;border:none;color:var(--text);
+  font-family:'IM Fell English',serif;font-style:italic;font-size:.95rem;
+  padding:7px 14px;cursor:pointer;border-radius:3px;text-align:center;
+  font-variant-numeric:tabular-nums;transition:all .12s;
+}
+.ap-rate-menu-item:hover{background:rgba(200,168,74,.08);color:var(--ivory2);}
+.ap-rate-menu-item.active{background:rgba(200,168,74,.16);color:var(--gold);}
 
 .ap-error{
   font-family:'Crimson Text',serif;font-size:.85rem;
@@ -575,10 +587,14 @@ h1 em{font-style:italic;color:var(--gold);}
 }
 
 /* Now playing — section + title hierarchy */
-.ap-now-text{display:flex;flex-direction:column;gap:2px;min-width:0;flex:1;}
+.ap-now-text{display:flex;flex-direction:column;gap:3px;min-width:0;}
 .ap-now-section{
-  font-family:'Crimson Text',serif;font-size:.62rem;letter-spacing:.2em;
-  text-transform:uppercase;color:var(--gold2);opacity:.7;
+  font-family:'Crimson Text',serif;font-size:.62rem;letter-spacing:.22em;
+  text-transform:uppercase;color:var(--gold2);opacity:.85;
+}
+.ap-now-title{
+  font-family:'Playfair Display',serif;font-size:1.1rem;color:var(--ivory);
+  font-weight:700;line-height:1.3;word-break:break-word;
 }
 
 .ap-parts{border-top:1px solid var(--border);padding-top:14px;}
@@ -599,18 +615,21 @@ h1 em{font-style:italic;color:var(--gold);}
 }
 .ap-group-head::before{flex:0 0 8px;}
 .ap-part{
-  display:flex;align-items:center;gap:12px;
+  display:flex;align-items:baseline;gap:10px;
   background:transparent;border:1px solid transparent;border-bottom-color:var(--bord2);
-  color:var(--text);font-family:'Crimson Text',serif;font-size:.92rem;
-  text-align:left;padding:9px 10px;cursor:pointer;transition:all .15s;
+  color:var(--text);font-family:'Crimson Text',serif;font-size:.95rem;
+  text-align:left;padding:10px 12px;cursor:pointer;transition:all .15s;
   border-radius:2px;
 }
 .ap-part:hover{background:rgba(200,168,74,.06);border-color:var(--bord2);}
 .ap-part.active{background:rgba(200,168,74,.12);border-color:var(--gold2);color:var(--ivory);}
-.ap-part-num{font-family:'IM Fell English',serif;font-size:.85rem;color:var(--gold2);font-style:italic;flex-shrink:0;width:22px;font-variant-numeric:tabular-nums;}
+.ap-part-chapter{
+  font-family:'IM Fell English',serif;font-style:italic;font-size:.88rem;
+  color:var(--gold2);flex-shrink:0;
+}
+.ap-part.active .ap-part-chapter{color:var(--gold);}
 .ap-part-title{flex:1;line-height:1.3;}
-.ap-part-bars{font-size:.55rem;letter-spacing:1px;color:var(--gold);animation:apblink 1s ease-in-out infinite;}
-@keyframes apblink{0%,100%{opacity:.4;}50%{opacity:1;}}
+.ap-part-bars{color:var(--gold);display:inline-flex;align-items:center;flex-shrink:0;}
 
 /* ─────── Audio parts editor ─────── */
 .ape-wrap{display:flex;flex-direction:column;gap:18px;}
@@ -659,6 +678,7 @@ h1 em{font-style:italic;color:var(--gold);}
 .ape-edit{display:flex;gap:10px;flex:1;min-width:0;align-items:flex-start;padding-top:2px;}
 .ape-fields{display:flex;flex-direction:column;gap:6px;flex:1;min-width:0;}
 .ape-actions{display:flex;flex-direction:column;gap:6px;flex-shrink:0;}
+.ape-row-grid{display:grid;grid-template-columns:1fr 1fr;gap:6px;}
 
 .ape-add{
   display:flex;flex-direction:column;gap:8px;
