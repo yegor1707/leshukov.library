@@ -17,7 +17,9 @@ import type {
 } from "@tanstack/react-query";
 
 import type {
+  AudioPart,
   Book,
+  CreateAudioPartInput,
   CreateBookInput,
   CreateNoteInput,
   HealthStatus,
@@ -535,6 +537,353 @@ export const useDeleteBook = <
   TContext
 > => {
   return useMutation(getDeleteBookMutationOptions(options));
+};
+
+/**
+ * @summary List audiobook parts for a book
+ */
+export const getListAudioPartsUrl = (id: string) => {
+  return `/api/books/${id}/audio`;
+};
+
+export const listAudioParts = async (
+  id: string,
+  options?: RequestInit,
+): Promise<AudioPart[]> => {
+  return customFetch<AudioPart[]>(getListAudioPartsUrl(id), {
+    ...options,
+    method: "GET",
+  });
+};
+
+export const getListAudioPartsQueryKey = (id: string) => {
+  return [`/api/books/${id}/audio`] as const;
+};
+
+export const getListAudioPartsQueryOptions = <
+  TData = Awaited<ReturnType<typeof listAudioParts>>,
+  TError = ErrorType<unknown>,
+>(
+  id: string,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof listAudioParts>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getListAudioPartsQueryKey(id);
+
+  const queryFn: QueryFunction<Awaited<ReturnType<typeof listAudioParts>>> = ({
+    signal,
+  }) => listAudioParts(id, { signal, ...requestOptions });
+
+  return {
+    queryKey,
+    queryFn,
+    enabled: !!id,
+    ...queryOptions,
+  } as UseQueryOptions<
+    Awaited<ReturnType<typeof listAudioParts>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type ListAudioPartsQueryResult = NonNullable<
+  Awaited<ReturnType<typeof listAudioParts>>
+>;
+export type ListAudioPartsQueryError = ErrorType<unknown>;
+
+/**
+ * @summary List audiobook parts for a book
+ */
+
+export function useListAudioParts<
+  TData = Awaited<ReturnType<typeof listAudioParts>>,
+  TError = ErrorType<unknown>,
+>(
+  id: string,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof listAudioParts>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getListAudioPartsQueryOptions(id, options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * @summary Add an audiobook part
+ */
+export const getAddAudioPartUrl = (id: string) => {
+  return `/api/books/${id}/audio`;
+};
+
+export const addAudioPart = async (
+  id: string,
+  createAudioPartInput: CreateAudioPartInput,
+  options?: RequestInit,
+): Promise<AudioPart> => {
+  return customFetch<AudioPart>(getAddAudioPartUrl(id), {
+    ...options,
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(createAudioPartInput),
+  });
+};
+
+export const getAddAudioPartMutationOptions = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof addAudioPart>>,
+    TError,
+    { id: string; data: BodyType<CreateAudioPartInput> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof addAudioPart>>,
+  TError,
+  { id: string; data: BodyType<CreateAudioPartInput> },
+  TContext
+> => {
+  const mutationKey = ["addAudioPart"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof addAudioPart>>,
+    { id: string; data: BodyType<CreateAudioPartInput> }
+  > = (props) => {
+    const { id, data } = props ?? {};
+
+    return addAudioPart(id, data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type AddAudioPartMutationResult = NonNullable<
+  Awaited<ReturnType<typeof addAudioPart>>
+>;
+export type AddAudioPartMutationBody = BodyType<CreateAudioPartInput>;
+export type AddAudioPartMutationError = ErrorType<unknown>;
+
+/**
+ * @summary Add an audiobook part
+ */
+export const useAddAudioPart = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof addAudioPart>>,
+    TError,
+    { id: string; data: BodyType<CreateAudioPartInput> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof addAudioPart>>,
+  TError,
+  { id: string; data: BodyType<CreateAudioPartInput> },
+  TContext
+> => {
+  return useMutation(getAddAudioPartMutationOptions(options));
+};
+
+/**
+ * @summary Update an audiobook part
+ */
+export const getUpdateAudioPartUrl = (id: string, partId: string) => {
+  return `/api/books/${id}/audio/${partId}`;
+};
+
+export const updateAudioPart = async (
+  id: string,
+  partId: string,
+  createAudioPartInput: CreateAudioPartInput,
+  options?: RequestInit,
+): Promise<AudioPart> => {
+  return customFetch<AudioPart>(getUpdateAudioPartUrl(id, partId), {
+    ...options,
+    method: "PUT",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(createAudioPartInput),
+  });
+};
+
+export const getUpdateAudioPartMutationOptions = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof updateAudioPart>>,
+    TError,
+    { id: string; partId: string; data: BodyType<CreateAudioPartInput> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof updateAudioPart>>,
+  TError,
+  { id: string; partId: string; data: BodyType<CreateAudioPartInput> },
+  TContext
+> => {
+  const mutationKey = ["updateAudioPart"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof updateAudioPart>>,
+    { id: string; partId: string; data: BodyType<CreateAudioPartInput> }
+  > = (props) => {
+    const { id, partId, data } = props ?? {};
+
+    return updateAudioPart(id, partId, data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type UpdateAudioPartMutationResult = NonNullable<
+  Awaited<ReturnType<typeof updateAudioPart>>
+>;
+export type UpdateAudioPartMutationBody = BodyType<CreateAudioPartInput>;
+export type UpdateAudioPartMutationError = ErrorType<unknown>;
+
+/**
+ * @summary Update an audiobook part
+ */
+export const useUpdateAudioPart = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof updateAudioPart>>,
+    TError,
+    { id: string; partId: string; data: BodyType<CreateAudioPartInput> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof updateAudioPart>>,
+  TError,
+  { id: string; partId: string; data: BodyType<CreateAudioPartInput> },
+  TContext
+> => {
+  return useMutation(getUpdateAudioPartMutationOptions(options));
+};
+
+/**
+ * @summary Delete an audiobook part
+ */
+export const getDeleteAudioPartUrl = (id: string, partId: string) => {
+  return `/api/books/${id}/audio/${partId}`;
+};
+
+export const deleteAudioPart = async (
+  id: string,
+  partId: string,
+  options?: RequestInit,
+): Promise<void> => {
+  return customFetch<void>(getDeleteAudioPartUrl(id, partId), {
+    ...options,
+    method: "DELETE",
+  });
+};
+
+export const getDeleteAudioPartMutationOptions = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof deleteAudioPart>>,
+    TError,
+    { id: string; partId: string },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof deleteAudioPart>>,
+  TError,
+  { id: string; partId: string },
+  TContext
+> => {
+  const mutationKey = ["deleteAudioPart"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof deleteAudioPart>>,
+    { id: string; partId: string }
+  > = (props) => {
+    const { id, partId } = props ?? {};
+
+    return deleteAudioPart(id, partId, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type DeleteAudioPartMutationResult = NonNullable<
+  Awaited<ReturnType<typeof deleteAudioPart>>
+>;
+
+export type DeleteAudioPartMutationError = ErrorType<unknown>;
+
+/**
+ * @summary Delete an audiobook part
+ */
+export const useDeleteAudioPart = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof deleteAudioPart>>,
+    TError,
+    { id: string; partId: string },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof deleteAudioPart>>,
+  TError,
+  { id: string; partId: string },
+  TContext
+> => {
+  return useMutation(getDeleteAudioPartMutationOptions(options));
 };
 
 /**

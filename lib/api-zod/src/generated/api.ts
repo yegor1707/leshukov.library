@@ -149,6 +149,67 @@ export const DeleteBookParams = zod.object({
 });
 
 /**
+ * @summary List audiobook parts for a book
+ */
+export const ListAudioPartsParams = zod.object({
+  id: zod.coerce.string(),
+});
+
+export const ListAudioPartsResponseItem = zod.object({
+  id: zod.string(),
+  bookId: zod.string(),
+  title: zod.string(),
+  url: zod.string(),
+  position: zod.number(),
+  createdAt: zod.string().nullish(),
+});
+export const ListAudioPartsResponse = zod.array(ListAudioPartsResponseItem);
+
+/**
+ * @summary Add an audiobook part
+ */
+export const AddAudioPartParams = zod.object({
+  id: zod.coerce.string(),
+});
+
+export const AddAudioPartBody = zod.object({
+  title: zod.string(),
+  url: zod.string(),
+  position: zod.number().optional(),
+});
+
+/**
+ * @summary Update an audiobook part
+ */
+export const UpdateAudioPartParams = zod.object({
+  id: zod.coerce.string(),
+  partId: zod.coerce.string(),
+});
+
+export const UpdateAudioPartBody = zod.object({
+  title: zod.string(),
+  url: zod.string(),
+  position: zod.number().optional(),
+});
+
+export const UpdateAudioPartResponse = zod.object({
+  id: zod.string(),
+  bookId: zod.string(),
+  title: zod.string(),
+  url: zod.string(),
+  position: zod.number(),
+  createdAt: zod.string().nullish(),
+});
+
+/**
+ * @summary Delete an audiobook part
+ */
+export const DeleteAudioPartParams = zod.object({
+  id: zod.coerce.string(),
+  partId: zod.coerce.string(),
+});
+
+/**
  * @summary List notes for a book
  */
 export const ListNotesParams = zod.object({

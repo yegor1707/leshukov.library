@@ -323,4 +323,137 @@ router.delete("/:id/thoughts/:thoughtId", async (req, res) => {
   }
 });
 
+// ───────── Audiobook parts ─────────
+
+function formatAudioPart(p: any) {
+  return {
+    id: p.id,
+    bookId: p.book_id,
+    title: p.title,
+    url: p.url,
+    position: p.sort_order ?? 0,
+    createdAt: p.created_at ?? null,
+  };
+}
+
+const audioPartSchema = z.object({
+  title: z.string().min(1),
+  url: z.string().min(1),
+  position: z.number().int().optional(),
+});
+
+router.get("/:id/audio", async (req, res) => {
+  try {
+    const { data, error } = await supabase
+      .from("audio_chapters")
+      .select("*")
+      .eq("book_id", req.params.id)
+      .order("sort_order", { ascending: true })
+      .order("created_at", { ascending: true });
+    if (error) throw error;
+    res.json((data || []).map(formatAudioPart));
+  } catch (err) {
+    req.log.error({ err }, "Failed to list audio parts");
+    res.status(500).json({ error: "Internal server error" });
+  }
+});
+
+router.post("/:id/audio", async (req, res) => {
+  try {
+    const parsed = audioPartSchema.safeParse(req.body);
+    if (!parsed.success) {
+      res.status(400).json({ error: "Invalid input" });
+      return;
+    }
+    const { data: existing } = await supabase
+      .from("audio_chapters")
+      .select("sort_order")
+      .eq("book_id", req.params.id)
+      .order("sort_order", { ascending: false })
+      .limit(1);
+    const nextPos = parsed.data.position ?? ((existing?.[0]?.sort_order ?? -1) + 1);
+    const { data: part, error } = await supabase
+      .from("audio_chapters")
+      .insert({
+        id: gid(),
+        book_id: req.params.id,
+        title: parsed.data.title,
+        url: parsed.data.url,
+        sort_order: nextPos,
+      })
+      .select()
+      .single();
+    if (error) throw error;
+    res.status(201).json(formatAudioPart(part));
+  } catch (err) {
+    req.log.error({ err }, "Failed to add audio part");
+    res.status(500).json({ error: "Internal server error" });
+  }
+});
+
+router.put("/:id/audio/reorder", async (req, res) => {
+  try {
+    const reorderSchema = z.object({
+      ids: z.array(z.string()),
+    });
+    const parsed = reorderSchema.safeParse(req.body);
+    if (!parsed.success) {
+      res.status(400).json({ error: "Invalid input" });
+      return;
+    }
+    for (let i = 0; i < parsed.data.ids.length; i++) {
+      await supabase
+        .from("audio_chapters")
+        .update({ sort_order: i })
+        .eq("id", parsed.data.ids[i]);
+    }
+    res.json({ ok: true });
+  } catch (err) {
+    req.log.error({ err }, "Failed to reorder audio parts");
+    res.status(500).json({ error: "Internal server error" });
+  }
+});
+
+router.put("/:id/audio/:partId", async (req, res) => {
+  try {
+    const parsed = audioPartSchema.partial().safeParse(req.body);
+    if (!parsed.success) {
+      res.status(400).json({ error: "Invalid input" });
+      return;
+    }
+    const update: any = {};
+    if (parsed.data.title !== undefined) update.title = parsed.data.title;
+    if (parsed.data.url !== undefined) update.url = parsed.data.url;
+    if (parsed.data.position !== undefined) update.sort_order = parsed.data.position;
+    const { data: part, error } = await supabase
+      .from("audio_chapters")
+      .update(update)
+      .eq("id", req.params.partId)
+      .select()
+      .single();
+    if (error || !part) {
+      res.status(404).json({ error: "Not found" });
+      return;
+    }
+    res.json(formatAudioPart(part));
+  } catch (err) {
+    req.log.error({ err }, "Failed to update audio part");
+    res.status(500).json({ error: "Internal server error" });
+  }
+});
+
+router.delete("/:id/audio/:partId", async (req, res) => {
+  try {
+    const { error } = await supabase
+      .from("audio_chapters")
+      .delete()
+      .eq("id", req.params.partId);
+    if (error) throw error;
+    res.status(204).send();
+  } catch (err) {
+    req.log.error({ err }, "Failed to delete audio part");
+    res.status(500).json({ error: "Internal server error" });
+  }
+});
+
 export default router;

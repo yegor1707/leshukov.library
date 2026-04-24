@@ -38,7 +38,17 @@ export const thoughtItemsTable = pgTable("thought_items", {
   createdAt: timestamp("created_at").notNull().defaultNow(),
 });
 
+export const audioChaptersTable = pgTable("audio_chapters", {
+  id: text("id").primaryKey(),
+  bookId: text("book_id").notNull().references(() => booksTable.id, { onDelete: "cascade" }),
+  title: text("title").notNull(),
+  url: text("url").notNull(),
+  sortOrder: integer("sort_order").notNull().default(0),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+});
+
 export const insertBookSchema = createInsertSchema(booksTable).omit({ createdAt: true });
 export type InsertBook = z.infer<typeof insertBookSchema>;
 export type Book = typeof booksTable.$inferSelect;
 export type Note = typeof notesTable.$inferSelect;
+export type AudioChapter = typeof audioChaptersTable.$inferSelect;

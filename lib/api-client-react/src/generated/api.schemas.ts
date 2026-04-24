@@ -27,7 +27,6 @@ export interface Book {
   thoughts?: string | null;
   vocab: VocabEntry[];
   cover?: string | null;
-  coverLandscape?: string | null;
   createdAt: string;
 }
 
@@ -43,7 +42,6 @@ export interface CreateBookInput {
   thoughts?: string | null;
   vocab: VocabEntry[];
   cover?: string | null;
-  coverLandscape?: string | null;
 }
 
 export interface Note {
@@ -55,6 +53,21 @@ export interface Note {
 
 export interface CreateNoteInput {
   text: string;
+}
+
+export interface AudioPart {
+  id: string;
+  bookId: string;
+  title: string;
+  url: string;
+  position: number;
+  createdAt?: string | null;
+}
+
+export interface CreateAudioPartInput {
+  title: string;
+  url: string;
+  position?: number;
 }
 
 export type ListBooksParams = {

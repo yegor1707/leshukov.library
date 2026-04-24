@@ -1,10 +1,12 @@
 import { useState, useEffect } from "react";
 import { useLocation } from "wouter";
-import { useGetBook, useListNotes, useAddNote } from "@workspace/api-client-react";
+import { useGetBook, useListNotes, useAddNote, useListAudioParts } from "@workspace/api-client-react";
 import { useBookMutations, useThoughts, useThoughtMutations, useBookNoteMutations } from "@/hooks/use-books";
 import { useAdmin } from "@/hooks/use-admin";
 import { showToast } from "@/components/Toast";
 import { BookFormSheet } from "@/components/BookFormSheet";
+import { AudioPlayer } from "@/components/AudioPlayer";
+import { AudioPartsEditor } from "@/components/AudioPartsEditor";
 import {
   DndContext, closestCenter,
   KeyboardSensor, PointerSensor, TouchSensor,
@@ -90,6 +92,8 @@ export default function BookPage({ params }: { params: { id: string } }) {
   const { data: book, isLoading, error } = useGetBook(params.id);
   const { data: notes = [] } = useListNotes(params.id);
   const { data: thoughtItems = [] } = useThoughts(params.id);
+  const { data: audioParts = [] } = useListAudioParts(params.id);
+  const [audioEditing, setAudioEditing] = useState(false);
   const { deleteBook, isDeleting, updateBook, isUpdating } = useBookMutations();
   const addNoteMutation = useAddNote();
   const { updateNote, isUpdatingNote, deleteNote } = useBookNoteMutations(params.id);
@@ -236,6 +240,7 @@ export default function BookPage({ params }: { params: { id: string } }) {
 
   const baseTabs = [
     { id: 'synopsis', label: 'Содержание' },
+    { id: 'audio', label: '🎧 Аудио' },
     { id: 'vocab', label: 'Словарь' },
     { id: 'quotes', label: 'Цитаты' },
     { id: 'thoughts', label: 'Мысли' },
@@ -403,6 +408,36 @@ export default function BookPage({ params }: { params: { id: string } }) {
                   </>
                 )}
               </>
+            )}
+
+            {/* AUDIO TAB */}
+            {activeTab === 'audio' && (
+              <div>
+                {audioEditing ? (
+                  <AudioPartsEditor
+                    bookId={params.id}
+                    parts={audioParts}
+                    onClose={() => setAudioEditing(false)}
+                  />
+                ) : (
+                  <>
+                    {audioParts.length > 0 ? (
+                      <AudioPlayer parts={audioParts} bookId={params.id} />
+                    ) : (
+                      <div className="sec-empty">Аудиокнига не добавлена</div>
+                    )}
+                    {isAdmin && (
+                      <button
+                        className="vedit"
+                        style={{ marginTop: '14px', width: '100%' }}
+                        onClick={() => setAudioEditing(true)}
+                      >
+                        ✎ {audioParts.length > 0 ? 'Редактировать аудиокнигу' : 'Добавить аудиокнигу'}
+                      </button>
+                    )}
+                  </>
+                )}
+              </div>
             )}
 
             {/* VOCAB TAB */}

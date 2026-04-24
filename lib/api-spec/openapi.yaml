@@ -120,6 +120,96 @@ paths:
       responses:
         "204":
           description: Deleted
+  /books/{id}/audio:
+    get:
+      operationId: listAudioParts
+      tags: [books]
+      summary: List audiobook parts for a book
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Audio parts
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/AudioPart"
+    post:
+      operationId: addAudioPart
+      tags: [books]
+      summary: Add an audiobook part
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateAudioPartInput"
+      responses:
+        "201":
+          description: Created audio part
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AudioPart"
+  /books/{id}/audio/{partId}:
+    put:
+      operationId: updateAudioPart
+      tags: [books]
+      summary: Update an audiobook part
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: partId
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateAudioPartInput"
+      responses:
+        "200":
+          description: Updated audio part
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AudioPart"
+    delete:
+      operationId: deleteAudioPart
+      tags: [books]
+      summary: Delete an audiobook part
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: partId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "204":
+          description: Deleted
   /books/{id}/notes:
     get:
       operationId: listNotes
@@ -289,3 +379,37 @@ components:
           type: string
       required:
         - text
+    AudioPart:
+      type: object
+      properties:
+        id:
+          type: string
+        bookId:
+          type: string
+        title:
+          type: string
+        url:
+          type: string
+        position:
+          type: integer
+        createdAt:
+          type: string
+          nullable: true
+      required:
+        - id
+        - bookId
+        - title
+        - url
+        - position
+    CreateAudioPartInput:
+      type: object
+      properties:
+        title:
+          type: string
+        url:
+          type: string
+        position:
+          type: integer
+      required:
+        - title
+        - url

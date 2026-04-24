@@ -6,7 +6,9 @@
  * OpenAPI spec version: 0.1.0
  */
 
+export * from "./audioPart";
 export * from "./book";
+export * from "./createAudioPartInput";
 export * from "./createBookInput";
 export * from "./createNoteInput";
 export * from "./healthStatus";
