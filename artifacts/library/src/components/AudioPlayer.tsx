@@ -1,5 +1,7 @@
 import { useState, useRef, useEffect, useCallback } from "react";
+import { useQuery } from "@tanstack/react-query";
 import { normalizeAudioUrl, formatTime } from "@/lib/audio-url";
+import { fetchAudioMeta, splitPartTitle } from "@/lib/audio-meta";
 import type { AudioPart } from "@workspace/api-client-react";
 
 interface Props {
@@ -9,6 +11,12 @@ interface Props {
 
 const PROGRESS_KEY = (bookId: string) => `audio_pos_${bookId}`;
 const RATE_KEY = "audio_rate";
+const SKIP_SECONDS = 10;
+
+function partLabel(rawTitle: string, idx: number): string {
+  const { title } = splitPartTitle(rawTitle);
+  return title || `Глава ${idx + 1}`;
+}
 
 export function AudioPlayer({ parts, bookId }: Props) {
   const [currentIdx, setCurrentIdx] = useState(0);
@@ -26,7 +34,14 @@ export function AudioPlayer({ parts, bookId }: Props) {
   const seekRef = useRef<HTMLInputElement>(null);
   const restoredRef = useRef(false);
 
+  const { data: meta } = useQuery({
+    queryKey: ["audio-meta", bookId],
+    queryFn: () => fetchAudioMeta(bookId),
+    staleTime: 60_000,
+  });
+
   const current = parts[currentIdx];
+  const currentSplit = current ? splitPartTitle(current.title) : { section: "", title: "" };
 
   useEffect(() => {
     if (!parts.length) return;
@@ -155,6 +170,19 @@ export function AudioPlayer({ parts, bookId }: Props) {
 
   const progressPct = duration > 0 ? (currentTime / duration) * 100 : 0;
 
+  // Group parts by section for the list
+  const groups: { section: string; items: { part: AudioPart; idx: number }[] }[] = [];
+  parts.forEach((p, i) => {
+    const { section } = splitPartTitle(p.title);
+    const last = groups[groups.length - 1];
+    if (last && last.section === section) {
+      last.items.push({ part: p, idx: i });
+    } else {
+      groups.push({ section, items: [{ part: p, idx: i }] });
+    }
+  });
+  const hasAnySection = groups.some(g => g.section);
+
   return (
     <div className="ap-wrap">
       <audio
@@ -173,12 +201,32 @@ export function AudioPlayer({ parts, bookId }: Props) {
         preload="metadata"
       />
 
+      {/* Audiobook meta (narrator / about) */}
+      {(meta?.narrator || meta?.about) && (
+        <div className="ap-meta">
+          {meta.narrator && (
+            <div className="ap-meta-row">
+              <span className="ap-meta-label">Озвучивает</span>
+              <span className="ap-meta-value">{meta.narrator}</span>
+            </div>
+          )}
+          {meta.about && (
+            <div className="ap-meta-about">{meta.about}</div>
+          )}
+        </div>
+      )}
+
       {/* Now playing label */}
       <div className="ap-now">
         <div className="ap-now-label">Сейчас играет</div>
         <div className="ap-now-title">
           <span className="ap-now-num">{String(currentIdx + 1).padStart(2, "0")}</span>
-          <span>{current?.title || "—"}</span>
+          <div className="ap-now-text">
+            {currentSplit.section && (
+              <span className="ap-now-section">{currentSplit.section}</span>
+            )}
+            <span>{currentSplit.title || `Глава ${currentIdx + 1}`}</span>
+          </div>
         </div>
       </div>
 
@@ -204,11 +252,11 @@ export function AudioPlayer({ parts, bookId }: Props) {
       {/* Main controls */}
       <div className="ap-controls">
         <button className="ap-btn ap-btn-sm" onClick={goPrev} disabled={currentIdx === 0} title="Предыдущая часть">⏮</button>
-        <button className="ap-btn ap-btn-sm" onClick={() => skip(-15)} title="Назад 15с">−15</button>
+        <button className="ap-btn ap-btn-sm" onClick={() => skip(-SKIP_SECONDS)} title={`Назад ${SKIP_SECONDS}с`}>−{SKIP_SECONDS}</button>
         <button className="ap-btn ap-btn-play" onClick={togglePlay} title={playing ? "Пауза" : "Играть"}>
           {playing ? "❚❚" : "▶"}
         </button>
-        <button className="ap-btn ap-btn-sm" onClick={() => skip(30)} title="Вперёд 30с">+30</button>
+        <button className="ap-btn ap-btn-sm" onClick={() => skip(SKIP_SECONDS)} title={`Вперёд ${SKIP_SECONDS}с`}>+{SKIP_SECONDS}</button>
         <button className="ap-btn ap-btn-sm" onClick={goNext} disabled={currentIdx >= parts.length - 1} title="Следующая часть">⏭</button>
       </div>
 
@@ -250,18 +298,29 @@ export function AudioPlayer({ parts, bookId }: Props) {
       {/* Parts list */}
       {parts.length > 1 && (
         <div className="ap-parts">
-          <div className="ap-parts-label">Части ({parts.length})</div>
+          <div className="ap-parts-label">{hasAnySection ? "Содержание" : `Части (${parts.length})`}</div>
           <div className="ap-parts-list">
-            {parts.map((p, i) => (
-              <button
-                key={p.id}
-                className={`ap-part ${i === currentIdx ? "active" : ""}`}
-                onClick={() => selectPart(i)}
-              >
-                <span className="ap-part-num">{String(i + 1).padStart(2, "0")}</span>
-                <span className="ap-part-title">{p.title}</span>
-                {i === currentIdx && playing && <span className="ap-part-bars">▌▌▌</span>}
-              </button>
+            {groups.map((g, gi) => (
+              <div key={gi} className="ap-group">
+                {g.section && (
+                  <div className="ap-group-head">{g.section}</div>
+                )}
+                {g.items.map(({ part, idx }) => {
+                  const { title } = splitPartTitle(part.title);
+                  const display = title || `Глава ${idx + 1}`;
+                  return (
+                    <button
+                      key={part.id}
+                      className={`ap-part ${idx === currentIdx ? "active" : ""}`}
+                      onClick={() => selectPart(idx)}
+                    >
+                      <span className="ap-part-num">{String(idx + 1).padStart(2, "0")}</span>
+                      <span className="ap-part-title">{display}</span>
+                      {idx === currentIdx && playing && <span className="ap-part-bars">▌▌▌</span>}
+                    </button>
+                  );
+                })}
+              </div>
             ))}
           </div>
         </div>

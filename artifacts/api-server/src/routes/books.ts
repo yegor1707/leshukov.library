@@ -325,6 +325,31 @@ router.delete("/:id/thoughts/:thoughtId", async (req, res) => {
 
 // ───────── Audiobook parts ─────────
 
+const META_SENTINEL_TITLE = "__audio_meta__";
+const META_URL_PREFIX = "meta:";
+
+function isMetaRow(p: any): boolean {
+  return (
+    p && (p.title === META_SENTINEL_TITLE || (typeof p.url === "string" && p.url.startsWith(META_URL_PREFIX)))
+  );
+}
+
+function parseMetaRow(p: any): { narrator: string; about: string } {
+  const fallback = { narrator: "", about: "" };
+  if (!p || typeof p.url !== "string") return fallback;
+  const raw = p.url.startsWith(META_URL_PREFIX) ? p.url.slice(META_URL_PREFIX.length) : "";
+  if (!raw) return fallback;
+  try {
+    const parsed = JSON.parse(raw);
+    return {
+      narrator: typeof parsed.narrator === "string" ? parsed.narrator : "",
+      about: typeof parsed.about === "string" ? parsed.about : "",
+    };
+  } catch {
+    return fallback;
+  }
+}
+
 function formatAudioPart(p: any) {
   return {
     id: p.id,
@@ -342,6 +367,11 @@ const audioPartSchema = z.object({
   position: z.number().int().optional(),
 });
 
+const audioMetaSchema = z.object({
+  narrator: z.string().max(500).optional().default(""),
+  about: z.string().max(2000).optional().default(""),
+});
+
 router.get("/:id/audio", async (req, res) => {
   try {
     const { data, error } = await supabase
@@ -351,9 +381,70 @@ router.get("/:id/audio", async (req, res) => {
       .order("sort_order", { ascending: true })
       .order("created_at", { ascending: true });
     if (error) throw error;
-    res.json((data || []).map(formatAudioPart));
+    const rows = (data || []).filter((r) => !isMetaRow(r));
+    res.json(rows.map(formatAudioPart));
   } catch (err) {
     req.log.error({ err }, "Failed to list audio parts");
+    res.status(500).json({ error: "Internal server error" });
+  }
+});
+
+router.get("/:id/audio-meta", async (req, res) => {
+  try {
+    const { data, error } = await supabase
+      .from("audio_chapters")
+      .select("*")
+      .eq("book_id", req.params.id)
+      .eq("title", META_SENTINEL_TITLE)
+      .limit(1);
+    if (error) throw error;
+    const row = (data || [])[0];
+    res.json(parseMetaRow(row));
+  } catch (err) {
+    req.log.error({ err }, "Failed to get audio meta");
+    res.status(500).json({ error: "Internal server error" });
+  }
+});
+
+router.put("/:id/audio-meta", async (req, res) => {
+  try {
+    const parsed = audioMetaSchema.safeParse(req.body);
+    if (!parsed.success) {
+      res.status(400).json({ error: "Invalid input" });
+      return;
+    }
+    const payload = {
+      narrator: parsed.data.narrator?.trim() || "",
+      about: parsed.data.about?.trim() || "",
+    };
+    const url = META_URL_PREFIX + JSON.stringify(payload);
+
+    const { data: existing } = await supabase
+      .from("audio_chapters")
+      .select("id")
+      .eq("book_id", req.params.id)
+      .eq("title", META_SENTINEL_TITLE)
+      .limit(1);
+
+    if (existing && existing[0]) {
+      const { error } = await supabase
+        .from("audio_chapters")
+        .update({ url })
+        .eq("id", existing[0].id);
+      if (error) throw error;
+    } else {
+      const { error } = await supabase.from("audio_chapters").insert({
+        id: gid(),
+        book_id: req.params.id,
+        title: META_SENTINEL_TITLE,
+        url,
+        sort_order: -1,
+      });
+      if (error) throw error;
+    }
+    res.json(payload);
+  } catch (err) {
+    req.log.error({ err }, "Failed to update audio meta");
     res.status(500).json({ error: "Internal server error" });
   }
 });
